@@ -9,15 +9,11 @@ let pedine = [];
 function init(){
     inizializzaScacchiera();
     generateBoard();
-
     posizionaPedine();
-
-    
 }
 
 
 function inizializzaScacchiera(){
-
     for(let i=0;i<8;i++){
         scacchiera[i]=[]
         for(let j=0;j<8;j++){
@@ -27,7 +23,6 @@ function inizializzaScacchiera(){
 }
 
 function generateBoard(){
-
     let tableScacchiera = document.getElementById("scacchiera");
     let tr = creaRiga(tableScacchiera);
     tr.id=0;
@@ -59,7 +54,6 @@ function generateBoard(){
                 td.riga=riga;
                 td.colonna=colonna;
                 td.id= "cella"+riga+""+colonna;
-                
                 td.addEventListener('dragover', allowDrop);
                 td.addEventListener('drop', drop);
                 scacchiera[riga-1][colonna-1] = td;
@@ -69,8 +63,6 @@ function generateBoard(){
         }
         colonna--;
     }
-
-
 }
 
 function creaRiga(scacchiera){
@@ -103,7 +95,6 @@ function posizionaPedine(){
         x=1+i;
         let posizioneBianco=document.getElementById("cella"+x+"2");
         posizioneBianco.appendChild(imgPedoneBianco);
-        
         pedine.push(new PedoneBianco({X:i,y:2}));
 
         let imgPedoneNero = document.createElement("img");
@@ -115,7 +106,6 @@ function posizionaPedine(){
 
         pedine.push(new PedoneNero({X:i,y:2}));
     }
-
 }*/
 
 function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
@@ -127,7 +117,6 @@ function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
     img.id = tipo + posizione.x + posizione.y;
     img.addEventListener('dragover', allowDrop);
     img.addEventListener('drop', drop);
-
     let cella = document.getElementById("cella" + posizione.x + posizione.y);
     cella.appendChild(img);
 
@@ -170,7 +159,6 @@ function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
             pedina = new Re(img, posizione, color);
             break;
     }
-
     pedine.push(pedina);
 }
 
@@ -212,7 +200,6 @@ function posizionaPedine() {
 
 function drag(event) {
     event.dataTransfer.setData("id", event.target.id);
-    
 }
 
 function allowDrop(event) {
@@ -222,20 +209,14 @@ function allowDrop(event) {
 
 function drop(event) {
     event.preventDefault();
-
     let data = event.dataTransfer.getData("id");
-
     let target = event.target;
     if (target.tagName.toLowerCase() === 'img') {
         target = target.parentNode;
     }
-
     let pedinaOggetto = document.getElementById(data);
-
     let pedina = getPedinaByReference(pedinaOggetto);
-
     console.log((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero"));
-
     if((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero")){
 
         let riga = target.riga;
@@ -246,9 +227,6 @@ function drop(event) {
         if (pedina.checkMove(nuovaPosizione)&&checkOccupato(nuovaPosizione)){
             let cella = document.getElementById(target.id);
             cella.appendChild(pedina.oggetto);
-        
-            // Aggiorna la posizione della pedina nell'array delle pedine
-        
             pedina.posizione.x=riga;
             pedina.posizione.y=colonna;
             turno=!turno;
@@ -257,7 +235,6 @@ function drop(event) {
             pieceAtPos=getPieceAtPosition(nuovaPosizione);
 
             if(pieceAtPos.color!=pedina.color){
-        
                 let index = pedine.indexOf(pieceAtPos);
                 if (index !== -1) {
                     pedine.splice(index, 1);
@@ -266,20 +243,13 @@ function drop(event) {
                 let cella = document.getElementById(target.id);
                 cella.innerHTML="";
                 cella.appendChild(pedina.oggetto);
-
                 console.log("Mangiato");
-
-
-            
                 pedina.posizione.x=riga;
                 pedina.posizione.y=colonna;
                 turno=!turno;
             }
         }
-        
     }
-    
-   
 }
 
 
@@ -294,7 +264,6 @@ function getPedinaByReference(oggetto){
 }
 
 function getPieceAtPosition(position){
-    
     for(let i=0; i<pedine.length; i++){
         if(pedine[i].posizione.x==position.x && pedine[i].posizione.y==position.y){
             return pedine[i];
@@ -304,7 +273,6 @@ function getPieceAtPosition(position){
 }
 
 function checkOccupato(posizione){
-
     for(let i=0;i<pedine.length;i++){
         if(posizione.x==pedine[i].posizione.x&&pedine[i].posizione.y==posizione.y){
             return false;
@@ -313,14 +281,11 @@ function checkOccupato(posizione){
     return true;
 
 }
-
 function isPathClear(start, end) {
     let xDirection = Math.sign(end.x - start.x);
     let yDirection = Math.sign(end.y - start.y);
-
     let x = start.x + xDirection;
     let y = start.y + yDirection;
-
     while (x !== end.x || y !== end.y) {
         if (!checkOccupato({ x: x, y: y })) {
             return false;
