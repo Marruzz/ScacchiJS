@@ -1,0 +1,41 @@
+#gameArea{
+    position: absolute;
+    top: 50%;  
+    left: 50%; 
+
+    transform: translate(-50%, -50%); 
+    width: 880px;
+    height: 880px;
+    background-color: gray;
+  }
+
+  #scacchiera{
+    margin: 40px;
+    width: 800px;
+    height: 800px;
+  }
+
+  .casella{
+    width: 80px;
+    height: 80px;
+  }
+
+  .casellaBianca{
+    background-color: #F5DEB3;
+  }
+
+  .casellaNera{
+    background-color: #8B4513;
+  }
+
+  .casellaInfo{
+    font-weight: bold;
+    font-size: large;
+    text-align: center;
+  }
+
+  .pedina{
+    width: 60px;
+    height: 55px;
+    margin: 10px;
+  }
