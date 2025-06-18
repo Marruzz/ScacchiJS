@@ -1,13 +1,24 @@
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 
 let turno = true;
-
 let pedine = [];
+
+// Cronologia delle mosse per l'annulla mossa
+let cronologiaMosse = [];
+let maxCronologia = 50; // Limite di mosse da ricordare
+
+// Variabili per l'AI
+let aiEnabled = false;
+let aiColor = "nero"; // L'AI gioca sempre con i pezzi neri
+let aiDifficulty = "medium"; // easy, medium, hard
+let aiThinking = false;
 
 function init() {
   inizializzaScacchiera();
   generateBoard();
   posizionaPedine();
+  updateGameStatus();
+  updateUndoButton();
 }
 
 function inizializzaScacchiera() {
@@ -82,28 +93,6 @@ function creaCasella(riga, tipo) {
   return td;
 }
 
-/*
-function posizionaPedine(){
-
-    for(let i=0;i<8;i++){
-        let imgPedoneBianco = document.createElement("img");
-        imgPedoneBianco.src="./img/PedoneBianco.png";
-        imgPedoneBianco.classList.add("pedina");
-        x=1+i;
-        let posizioneBianco=document.getElementById("cella"+x+"2");
-        posizioneBianco.appendChild(imgPedoneBianco);
-        pedine.push(new PedoneBianco({X:i,y:2}));
-
-        let imgPedoneNero = document.createElement("img");
-        imgPedoneNero.src="./img/PedoneNero.png";
-        imgPedoneNero.classList.add("pedina");
-        x=1+i;
-        let posizioneNero=document.getElementById("cella"+x+"7");
-        posizioneNero.appendChild(imgPedoneNero);
-
-        pedine.push(new PedoneNero({X:i,y:2}));
-    }
-}*/
 
 function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
   let img = document.createElement("img");
@@ -160,7 +149,7 @@ function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
 }
 
 function posizionaPedine() {
-  // Posizionamento dei pedoni
+
   for (let i = 0; i < 8; i++) {
     creaEPiazzaPedina(
       "PedoneBianco",
@@ -176,7 +165,7 @@ function posizionaPedine() {
     );
   }
 
-  // Posizionamento delle torri
+
   creaEPiazzaPedina(
     "TorreBianca",
     { x: 1, y: 1 },
@@ -192,7 +181,7 @@ function posizionaPedine() {
   creaEPiazzaPedina("TorreNera", { x: 1, y: 8 }, "./img/TorreNera.png", "nero");
   creaEPiazzaPedina("TorreNera", { x: 8, y: 8 }, "./img/TorreNera.png", "nero");
 
-  // Posizionamento dei cavalli
+
   creaEPiazzaPedina(
     "CavalloBianco",
     { x: 2, y: 1 },
@@ -218,7 +207,7 @@ function posizionaPedine() {
     "nero"
   );
 
-  // Posizionamento degli alfieri
+
   creaEPiazzaPedina(
     "AlfiereBianco",
     { x: 3, y: 1 },
@@ -244,7 +233,7 @@ function posizionaPedine() {
     "nero"
   );
 
-  // Posizionamento delle regine
+
   creaEPiazzaPedina(
     "ReginaBianca",
     { x: 4, y: 1 },
@@ -258,13 +247,39 @@ function posizionaPedine() {
     "nero"
   );
 
-  // Posizionamento dei re
   creaEPiazzaPedina("ReBianco", { x: 5, y: 1 }, "./img/ReBianco.png", "bianco");
   creaEPiazzaPedina("ReNero", { x: 5, y: 8 }, "./img/ReNero.png", "nero");
+
+
+  pedine.forEach(pedina => {
+    if (pedina.constructor.name === "PedoneBianco" || pedina.constructor.name === "PedoneNero") {
+      pedina.firstMove = true;
+    }
+  });
+
+
+  setTimeout(() => {
+    salvaStatoGioco();
+  }, 100);
 }
 
 function drag(event) {
   event.dataTransfer.setData("id", event.target.id);
+  
+
+  const pedinaElement = event.target;
+  const pedina = getPedinaByReference(pedinaElement);
+  
+  if (pedina) {
+
+    const cella = pedinaElement.parentNode;
+    cella.classList.add("selected");
+    
+
+    if ((turno && pedina.color === "bianco") || (!turno && pedina.color === "nero")) {
+      highlightValidMoves(pedina);
+    }
+  }
 }
 
 function allowDrop(event) {
@@ -289,37 +304,48 @@ function drop(event) {
     (turno == false && pedina.color == "nero")
   ) {
     let riga = target.riga;
-    let colonna = target.colonna;
+    let colonna = target.colonna;    nuovaPosizione = { x: riga, y: colonna };
 
-    nuovaPosizione = { x: riga, y: colonna };
 
-    if (pedina.checkMove(nuovaPosizione) && checkOccupato(nuovaPosizione)) {
-      let cella = document.getElementById(target.id);
-      cella.appendChild(pedina.oggetto);
-      pedina.posizione.x = riga;
-      pedina.posizione.y = colonna;
-      turno = !turno;
-    } else if (
-      pedina.checkMove(nuovaPosizione) &&
-      !checkOccupato(nuovaPosizione)
-    ) {
-      pieceAtPos = getPieceAtPosition(nuovaPosizione);
+    if (pedina.checkMove(nuovaPosizione)) {
 
-      if (pieceAtPos.color != pedina.color) {
+      salvaStatoGioco();
+      
+
+      let pieceAtPos = getPieceAtPosition(nuovaPosizione);
+      
+      if (pieceAtPos != null) {
+
         let index = pedine.indexOf(pieceAtPos);
         if (index !== -1) {
           pedine.splice(index, 1);
         }
-
-        let cella = document.getElementById(target.id);
-        cella.innerHTML = "";
-        cella.appendChild(pedina.oggetto);
-        console.log("Mangiato");
-        pedina.posizione.x = riga;
-        pedina.posizione.y = colonna;
-        turno = !turno;
+        showNotification("Pezzo catturato!", "success");
+      } else {
+        showNotification("Mossa eseguita!", "success");
       }
+
+
+      let cella = document.getElementById(target.id);
+      cella.innerHTML = "";
+      cella.appendChild(pedina.oggetto);
+      pedina.posizione.x = riga;
+      pedina.posizione.y = colonna;
+      turno = !turno;
+      
+
+      updateGameStatus();
+      clearHighlights();
+      
+    } else {
+
+      clearHighlights();
+      showNotification("Mossa non valida!", "error");
     }
+  } else {
+
+    clearHighlights();
+    showNotification("Non è il tuo turno!", "error");
   }
 }
 
@@ -369,3 +395,249 @@ function isPathClear(start, end) {
   }
   return true;
 }
+
+
+function updateGameStatus() {
+  const statusElement = document.getElementById("currentPlayer");
+  if (statusElement) {
+    if (turno) {
+      statusElement.textContent = "Turno del Bianco ♔";
+      statusElement.className = "text-white";
+    } else {
+      statusElement.textContent = "Turno del Nero ♛";
+      statusElement.className = "text-gray-300";
+    }
+  }
+}
+
+function resetGame() {
+
+  const scacchiera = document.getElementById("scacchiera");
+  scacchiera.innerHTML = "";
+
+
+  turno = true;
+  pedine = [];
+  cronologiaMosse = []; // Pulisce la cronologia
+
+
+  init();
+
+
+  showNotification("Nuova partita iniziata!", "success");
+}
+
+function undoMove() {
+
+  if (cronologiaMosse.length <= 1) {
+    showNotification("Non ci sono mosse da annullare!", "error");
+    return;
+  }
+  
+  if (ripristinaStatoGioco()) {
+    showNotification("Mossa annullata!", "success");
+  }
+}
+
+
+function salvaStatoGioco() {
+
+  const stato = {
+    turno: turno,
+    pedine: pedine.map(pedina => ({
+      id: pedina.oggetto.id,
+      tipo: pedina.constructor.name,
+      posizione: { x: pedina.posizione.x, y: pedina.posizione.y },
+      color: pedina.color,
+      src: pedina.oggetto.src,
+      firstMove: pedina.firstMove || false // Salva il flag firstMove se esiste
+    }))
+  };
+  
+
+  cronologiaMosse.push(stato);
+  
+
+  if (cronologiaMosse.length > maxCronologia) {
+    cronologiaMosse.shift();
+  }
+  
+
+  updateUndoButton();
+}
+
+function ripristinaStatoGioco() {
+  if (cronologiaMosse.length === 0) {
+    showNotification("Nessuna mossa da annullare!", "error");
+    return false;
+  }
+  
+
+  const statoToRestore = cronologiaMosse.pop();
+  
+
+  const scacchiera = document.getElementById("scacchiera");
+  const caselle = scacchiera.querySelectorAll(".casella");
+  caselle.forEach(casella => {
+
+    if (!casella.classList.contains("casellaInfo")) {
+      casella.innerHTML = "";
+    }
+  });
+  
+
+  turno = statoToRestore.turno;
+  
+
+  pedine = [];
+  statoToRestore.pedine.forEach(pedinaData => {
+    ricrePedina(pedinaData);
+  });
+  
+
+  updateGameStatus();
+  clearHighlights();
+  updateUndoButton();
+  
+  return true;
+}
+
+function ricrePedina(pedinaData) {
+
+  let img = document.createElement("img");
+  img.src = pedinaData.src;
+  img.classList.add("pedina");
+  img.draggable = true;
+  img.addEventListener("dragstart", drag);
+  img.id = pedinaData.id;
+  img.addEventListener("dragover", allowDrop);
+  img.addEventListener("drop", drop);
+  
+
+  let cella = document.getElementById("cella" + pedinaData.posizione.x + pedinaData.posizione.y);
+  cella.appendChild(img);
+
+  let pedina = null;
+  switch (pedinaData.tipo) {
+    case "PedoneBianco":
+      pedina = new PedoneBianco(img, pedinaData.posizione);
+      if (pedinaData.firstMove !== undefined) pedina.firstMove = pedinaData.firstMove;
+      break;
+    case "PedoneNero":
+      pedina = new PedoneNero(img, pedinaData.posizione);
+      if (pedinaData.firstMove !== undefined) pedina.firstMove = pedinaData.firstMove;
+      break;
+    case "Torre":
+      pedina = new Torre(img, pedinaData.posizione, pedinaData.color);
+      break;
+    case "Cavallo":
+      pedina = new Cavallo(img, pedinaData.posizione, pedinaData.color);
+      break;
+    case "Alfiere":
+      pedina = new Alfiere(img, pedinaData.posizione, pedinaData.color);
+      break;
+    case "Regina":
+      pedina = new Regina(img, pedinaData.posizione, pedinaData.color);
+      break;
+    case "Re":
+      pedina = new Re(img, pedinaData.posizione, pedinaData.color);
+      break;
+  }
+  
+  if (pedina) {
+    pedine.push(pedina);
+  }
+}
+
+function updateUndoButton() {
+  const undoButton = document.getElementById("undoButton");
+  const undoCount = document.getElementById("undoCount");
+  
+  if (undoButton && undoCount) {
+
+    const mosseAnnullabili = Math.max(0, cronologiaMosse.length - 1);
+    undoCount.textContent = mosseAnnullabili;
+    
+    if (cronologiaMosse.length <= 1) {
+      undoButton.disabled = true;
+      undoButton.classList.add("opacity-50", "cursor-not-allowed");
+      undoButton.classList.remove("hover:from-orange-600", "hover:to-orange-800", "hover:shadow-xl", "transform", "hover:-translate-y-1");
+    } else {
+      undoButton.disabled = false;
+      undoButton.classList.remove("opacity-50", "cursor-not-allowed");
+      undoButton.classList.add("hover:from-orange-600", "hover:to-orange-800", "hover:shadow-xl", "transform", "hover:-translate-y-1");
+    }
+  }
+}
+function highlightValidMoves(pedina) {
+
+  clearHighlights();
+  
+
+  for (let i = 1; i <= 8; i++) {
+    for (let j = 1; j <= 8; j++) {
+      const posizione = { x: i, y: j };
+      if (pedina.checkMove(posizione)) {
+        const cella = document.getElementById(`cella${i}${j}`);
+        if (cella) {
+
+          let pieceAtPos = getPieceAtPosition(posizione);
+          if (pieceAtPos != null && pieceAtPos.color !== pedina.color) {
+            cella.classList.add("valid-capture");
+          } else if (pieceAtPos == null) {
+            cella.classList.add("valid-move");
+          }
+        }
+      }
+    }
+  }
+}
+
+function clearHighlights() {
+  const caselle = document.querySelectorAll(".casella");
+  caselle.forEach((casella) => {
+    casella.classList.remove("valid-move", "valid-capture", "selected");
+  });
+}
+
+
+function getCronologiaInfo() {
+  return {
+    totaleMosse: cronologiaMosse.length,
+    ultimaMossa: cronologiaMosse.length > 0 ? cronologiaMosse[cronologiaMosse.length - 1] : null,
+    puoAnnullare: cronologiaMosse.length > 1 // Mantiene almeno lo stato iniziale
+  };
+}
+
+
+function mostraCronologia() {
+  console.log("Cronologia mosse:", cronologiaMosse);
+  console.log("Info cronologia:", getCronologiaInfo());
+}
+
+
+document.addEventListener("keydown", function(event) {
+
+  if (event.ctrlKey && event.key === 'z') {
+    event.preventDefault();
+    if (cronologiaMosse.length > 1) { // Mantiene lo stato iniziale
+      undoMove();
+    }
+  }
+  
+
+  if (event.ctrlKey && event.key === 'r') {
+    event.preventDefault();
+    resetGame();
+  }
+});
+
+
+document.addEventListener("DOMContentLoaded", function () {
+  updateGameStatus();
+  
+
+  setTimeout(() => {
+    showNotification("💡 Suggerimento: Usa Ctrl+Z per annullare, Ctrl+R per reset", "info");
+  }, 3000);
+});

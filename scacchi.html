@@ -1,16 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scacchiera</title>
+    <title>Scacchi JS - Chess Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'chess-light': '#F0D9B5',
+                        'chess-dark': '#B58863',
+                        'chess-border': '#8B4513',
+                        'chess-bg': '#2D3748'
+                    }
+                }
+            }
+        }
+    </script>
     <script src="pedine.js"></script>
     <script src="scacchi.js"></script>
     <link rel="stylesheet" href="scacchi.css" />
   </head>
-  <body onload="init()">
-    <div id="gameArea">
-      <table id="scacchiera"></table>
+  <body onload="init()" class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    
+    <header class="text-center py-8">
+        <h1 class="text-5xl font-bold text-white mb-2 tracking-wide">♔ Scacchi JS ♛</h1>
+        <p class="text-gray-300 text-lg">Un elegante gioco di scacchi in JavaScript</p>
+    </header>
+
+    
+    <div class="text-center mb-6">
+        <div id="gameStatus" class="inline-block bg-white/10 backdrop-blur-md rounded-xl px-6 py-3 text-white text-lg font-semibold shadow-lg border border-white/20">
+            <span id="currentPlayer">Turno del Bianco</span>
+        </div>
     </div>
+
+    
+    <div class="flex justify-center items-center px-4">
+        <div id="gameArea" class="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
+            
+            <div class="bg-chess-border rounded-2xl p-4 shadow-inner">
+                <table id="scacchiera" class="rounded-xl overflow-hidden shadow-lg"></table>
+            </div>
+              
+            <div class="mt-6 flex justify-center space-x-4">
+                <button onclick="resetGame()" class="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    🔄 Nuova Partita
+                </button>
+                <button onclick="undoMove()" id="undoButton" class="bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    ↶ Annulla Mossa <span id="undoCount" class="bg-white/20 px-2 py-1 rounded-full text-xs ml-2">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    
+    <footer class="text-center mt-12 pb-8">
+        <p class="text-gray-400 text-sm">Realizzato con ❤️ usando JavaScript e Tailwind CSS</p>
+    </footer>
   </body>
 </html>
