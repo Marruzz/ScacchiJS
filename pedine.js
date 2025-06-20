@@ -32,38 +32,45 @@ class Pedina {
 }
 
 class PedoneBianco extends Pedina {
-  constructor(nome, posizione) {
-    super(nome, posizione, "bianco");
-    this.firstMove = true;
-  }
-  checkMove(newPosition) {
-    if (!this.isValidPosition(newPosition) || !this.hasMoved(newPosition))
-      return false;
 
-    const yDiff = newPosition.y - this.posizione.y;
-    const xDiff = Math.abs(newPosition.x - this.posizione.x);
+    constructor(nome, posizione) {
+        super(nome, posizione, 'bianco');
+        this.firstMove = true;
+    }    checkMove(newPosition) {
+        if (!this.isValidPosition(newPosition) || !this.hasMoved(newPosition)) return false;
 
+        const yDiff = newPosition.y - this.posizione.y;
+        const xDiff = Math.abs(newPosition.x - this.posizione.x);
 
-    if (yDiff === 1 && xDiff === 1) {
-      let targetPiece = getPieceAtPosition(newPosition);
-      if (targetPiece != null && targetPiece.color == "nero") return true;
-    }
-
-    if (xDiff === 0) {
-      let targetPiece = getPieceAtPosition(newPosition);
-      if (targetPiece == null) { // Casella libera
-        if (this.firstMove && (yDiff === 1 || yDiff === 2)) {
-
-          if (yDiff === 2) {
-            let intermediatePiece = getPieceAtPosition({x: this.posizione.x, y: this.posizione.y + 1});
-            if (intermediatePiece != null) return false; // Casella intermedia occupata
-          }
-          this.firstMove = false;
-          return true;
-        } else if (!this.firstMove && yDiff === 1) {
-          return true;
+        // Cattura in diagonale (solo se c'è un pezzo nemico)
+        if (yDiff === 1 && xDiff === 1) {
+            let targetPiece = getPieceAtPosition(newPosition);
+            return targetPiece != null && targetPiece.color == 'nero';
         }
-      }
+        
+        // Movimento in avanti (solo se la casella è libera)
+        if (xDiff === 0) {
+            // Controlla che la casella di destinazione sia libera
+            if (!checkOccupato(newPosition)) {
+                return false;
+            }
+            
+            if (this.firstMove && (yDiff === 1 || yDiff === 2)) {
+                // Per il movimento di due caselle, verifica che anche la casella intermedia sia libera
+                if (yDiff === 2) {
+                    const intermediatePosition = {x: this.posizione.x, y: this.posizione.y + 1};
+                    if (!checkOccupato(intermediatePosition)) {
+                        return false;
+                    }
+                }
+                return true;
+            } else if (!this.firstMove && yDiff === 1) {
+                return true;
+            }
+        }
+        
+        return false;
+
     }
 
     return false;
@@ -71,38 +78,44 @@ class PedoneBianco extends Pedina {
 }
 
 class PedoneNero extends Pedina {
-  constructor(nome, posizione) {
-    super(nome, posizione, "nero");
-    this.firstMove = true;
-  }
-  checkMove(newPosition) {
-    if (!this.isValidPosition(newPosition) || !this.hasMoved(newPosition))
-      return false;
+    constructor(nome, posizione) {
+        super(nome, posizione, 'nero');
+        this.firstMove = true;
+    }    checkMove(newPosition) {
+        if (!this.isValidPosition(newPosition) || !this.hasMoved(newPosition)) return false;
 
-    const yDiff = newPosition.y - this.posizione.y;
-    const xDiff = Math.abs(newPosition.x - this.posizione.x);
+        const yDiff = newPosition.y - this.posizione.y;
+        const xDiff = Math.abs(newPosition.x - this.posizione.x);
 
-
-    if (yDiff === -1 && xDiff === 1) {
-      let targetPiece = getPieceAtPosition(newPosition);
-      if (targetPiece != null && targetPiece.color == "bianco") return true;
-    }
-
-    if (xDiff === 0) {
-      let targetPiece = getPieceAtPosition(newPosition);
-      if (targetPiece == null) { // Casella libera
-        if (this.firstMove && (yDiff === -1 || yDiff === -2)) {
-
-          if (yDiff === -2) {
-            let intermediatePiece = getPieceAtPosition({x: this.posizione.x, y: this.posizione.y - 1});
-            if (intermediatePiece != null) return false; // Casella intermedia occupata
-          }
-          this.firstMove = false;
-          return true;
-        } else if (!this.firstMove && yDiff === -1) {
-          return true;
+        // Cattura in diagonale (solo se c'è un pezzo nemico)
+        if (yDiff === -1 && xDiff === 1) {
+            let targetPiece = getPieceAtPosition(newPosition);
+            return targetPiece != null && targetPiece.color == 'bianco';
         }
-      }
+        
+        // Movimento in avanti (solo se la casella è libera)
+        if (xDiff === 0) {
+            // Controlla che la casella di destinazione sia libera
+            if (!checkOccupato(newPosition)) {
+                return false;
+            }
+            
+            if (this.firstMove && (yDiff === -1 || yDiff === -2)) {
+                // Per il movimento di due caselle, verifica che anche la casella intermedia sia libera
+                if (yDiff === -2) {
+                    const intermediatePosition = {x: this.posizione.x, y: this.posizione.y - 1};
+                    if (!checkOccupato(intermediatePosition)) {
+                        return false;
+                    }
+                }
+                return true;
+            } else if (!this.firstMove && yDiff === -1) {
+                return true;
+            }
+        }
+        
+        return false;
+
     }
     
     return false;
@@ -112,9 +125,12 @@ class PedoneNero extends Pedina {
     const yDiff = newPosition.y - this.posizione.y;
     const xDiff = Math.abs(newPosition.x - this.posizione.x);
 
-    if (yDiff === -1 && xDiff === 1) {
-      let targetPiece = getPieceAtPosition(newPosition);
-      if (targetPiece != null && targetPiece.color == "bianco") return true;
+
+        if (yDiff === -1 && xDiff === 1) {
+            let targetPiece = getPieceAtPosition(newPosition);
+            return targetPiece != null && targetPiece.color == 'bianco';
+        }
+        return false;
     }
     return false;
   }

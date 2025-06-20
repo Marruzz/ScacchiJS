@@ -1,35 +1,32 @@
-const alphabet = "abcdefghijklmnopqrstuvwxyz";
+
+const alphabet = 'abcdefghijklmnopqrstuvwxyz';
 
 let turno = true;
 let pedine = [];
-let scacchiera = []; // Matrice per rappresentare la scacchiera
+let scacchiera = [];
 
-// Cronologia delle mosse per l'annulla mossa
-let cronologiaMosse = [];
-let maxCronologia = 50; // Limite di mosse da ricordare
+// Variabili per il tracking del gioco
+let moveCount = 0;
+let gameStartTime = null;
+let gameTimer = null;
+let moveHistory = [];
+let capturedPieces = { white: [], black: [] };
+let isGameActive = true;
 
-// Variabili per l'AI
-let aiEnabled = false;
-let aiColor = "nero"; // L'AI gioca sempre con i pezzi neri
-let aiDifficulty = "medium"; // easy, medium, hard
-let aiThinking = false;
+// Variabili per l'esperienza visiva migliorata
+let selectedPiece = null;
+let highlightedMoves = [];
 
-function init() {
-  inizializzaScacchiera();
-  generateBoard();
-  posizionaPedine();
-  updateGameStatus();
-  updateUndoButton();
-}
+// Riferimenti alle scacchiere
+let scacchieraMobile = [];
+let scacchieraDesktop = [];
 
-function inizializzaScacchiera() {
-  for (let i = 0; i < 8; i++) {
-    scacchiera[i] = [];
-    for (let j = 0; j < 8; j++) {
-      scacchiera[i][j] = null;
-    }
-  }
-}
+// Mappa delle tabelle scacchiera
+const chessboards = {
+    mobile: 'scacchieraMobile',
+    desktop: 'scacchieraDesktop'
+};
+
 
 function generateBoard() {
   let tableScacchiera = document.getElementById("scacchiera");
@@ -80,18 +77,33 @@ function creaRiga(scacchiera) {
   return tr;
 }
 
-function creaCasella(riga, tipo) {
-  let td = document.createElement("td");
-  riga.appendChild(td);
-  td.classList.add("casella");
-  if (tipo == "info") {
-    td.classList.add("casellaInfo");
-  } else if (tipo == "nera") {
-    td.classList.add("casellaNera");
-  } else if (tipo == "bianca") {
-    td.classList.add("casellaBianca");
-  }
-  return td;
+
+function init(){
+    console.log("Inizializzazione avviata...");
+    inizializzaScacchiera();
+    console.log("Scacchiera inizializzata");
+    
+    // Genera entrambe le scacchiere
+    generateBoard('scacchieraDesktop');
+    generateBoard('scacchieraMobile');
+    
+    // Usa la scacchiera desktop come riferimento principale
+    scacchiera = scacchieraDesktop;
+      console.log("Board generate");
+    posizionaPedine();
+    console.log("Pedine posizionate");    
+    
+    // Configura subito gli event listeners
+    setupEventListeners();
+    
+    // Inizializza UI e timer
+    setTimeout(() => {
+        startGameTimer();
+        updateCurrentPlayer();
+        // Richiama setupEventListeners nel caso alcuni elementi non fossero pronti prima
+        setupEventListeners();
+    }, 1000);
+
 }
 
 
@@ -265,94 +277,74 @@ function posizionaPedine() {
   }, 100);
 }
 
-function drag(event) {
-  event.dataTransfer.setData("id", event.target.id);
-  
 
-  const pedinaElement = event.target;
-  const pedina = getPedinaByReference(pedinaElement);
-  
-  if (pedina) {
-
-    const cella = pedinaElement.parentNode;
-    cella.classList.add("selected");
+function generateBoard(tableId = 'scacchieraDesktop'){
+    console.log("Generazione board iniziata per:", tableId);
+    let tableScacchiera = document.getElementById(tableId);
+    console.log("Elemento scacchiera trovato:", tableScacchiera);
     
-
-    if ((turno && pedina.color === "bianco") || (!turno && pedina.color === "nero")) {
-      highlightValidMoves(pedina);
+    if (!tableScacchiera) {
+        console.error("Elemento scacchiera non trovato per ID:", tableId);
+        return;
     }
-  }
-}
-
-function allowDrop(event) {
-  event.preventDefault();
-}
-
-function drop(event) {
-  event.preventDefault();
-  let data = event.dataTransfer.getData("id");
-  let target = event.target;
-  if (target.tagName.toLowerCase() === "img") {
-    target = target.parentNode;
-  }
-  let pedinaOggetto = document.getElementById(data);
-  let pedina = getPedinaByReference(pedinaOggetto);
-  console.log(
-    (turno == true && pedina.color == "bianco") ||
-      (turno == false && pedina.color == "nero")
-  );  if (
-    (turno == true && pedina.color == "bianco") ||
-    (turno == false && pedina.color == "nero" && !aiEnabled)
-  ) {
-    let riga = target.riga;
-    let colonna = target.colonna;    nuovaPosizione = { x: riga, y: colonna };
-
-
-    if (pedina.checkMove(nuovaPosizione)) {
-
-      salvaStatoGioco();
-      
-
-      let pieceAtPos = getPieceAtPosition(nuovaPosizione);
-      
-      if (pieceAtPos != null) {
-
-        let index = pedine.indexOf(pieceAtPos);
-        if (index !== -1) {
-          pedine.splice(index, 1);
+    
+    // Determina quale array di scacchiera usare
+    let currentBoard = tableId === 'scacchieraMobile' ? scacchieraMobile : scacchieraDesktop;
+    
+    // Inizializza l'array se necessario
+    if (currentBoard.length === 0) {
+        for(let i = 0; i < 8; i++){
+            currentBoard[i] = [];
+            for(let j = 0; j < 8; j++){
+                currentBoard[i][j] = null;
+            }
         }
-        showNotification("Pezzo catturato!", "success");
-      } else {
-        showNotification("Mossa eseguita!", "success");
-      }
+    }
+    
+    // Pulisco eventuali contenuti precedenti
+    tableScacchiera.innerHTML = "";
+    
+    // Genera scacchiera senza coordinate esterne
+    let count = 0;
+    let colonna = 8;
+    for(let i = 0; i < 8; i++){
+        let tr = creaRiga(tableScacchiera);
+        tr.id = i;
+        let riga = 1;
+        for(let j = 0; j < 8; j++){
+            let td;
+            if(count % 2 == 1){
+                td = creaCasella(tr, "bianca");
+            } else {
+                td = creaCasella(tr, "nera");
+            }
+            td.riga = riga;
+            td.colonna = colonna;
+            td.id = "cella" + riga + "" + colonna + "_" + tableId;
+            td.classList.add(tableId); // Aggiungi classe per identificare la scacchiera
+            td.addEventListener('dragover', allowDrop);
+            td.addEventListener('drop', drop);
+            
+            // Aggiungi click handler per pulire le evidenziazioni
+            td.addEventListener('click', function(e) {
+                if (e.target === this && !this.querySelector('.pedina')) {
+                    clearHighlights();
+                }
+            });
+            
+            currentBoard[riga-1][colonna-1] = td;
+            
+            // Sincronizza con scacchiera principale se necessario
+            if (scacchiera.length === 0) {
+                scacchiera = scacchieraDesktop.length > 0 ? scacchieraDesktop : scacchieraMobile;
+            }
+            
+            riga++;
+            count++;
+        }
+        colonna--;
+        count++;
 
-
-      let cella = document.getElementById(target.id);
-      cella.innerHTML = "";
-      cella.appendChild(pedina.oggetto);
-      pedina.posizione.x = riga;
-      pedina.posizione.y = colonna;      turno = !turno;
-      
-      // Aggiorna lo status del gioco e pulisce gli highlight
-      updateGameStatus();
-      clearHighlights();
-      
-      // Attiva l'AI se è il suo turno
-      setTimeout(() => {
-        makeAIMove();
-      }, 300);
-      
-    } else {
-
-      clearHighlights();
-      showNotification("Mossa non valida!", "error");
-    }  } else {
-    // Non è il turno del giocatore o sta cercando di muovere pezzi dell'AI
-    clearHighlights();
-    if (aiEnabled && !turno && pedina.color === "nero") {
-      showNotification("Non puoi muovere i pezzi dell'AI!", "error");
-    } else {
-      showNotification("Non è il tuo turno!", "error");
     }
   }
 }
@@ -426,144 +418,86 @@ function updateGameStatus() {
   }
 }
 
-function resetGame() {
-  // Pulisce la scacchiera
-  const scacchiera = document.getElementById("scacchiera");
-  scacchiera.innerHTML = "";
 
-  // Resetta le variabili di gioco
-  turno = true;
-  pedine = [];
-  cronologiaMosse = []; // Pulisce la cronologia
-  aiThinking = false; // Reset AI
-
-  // Riinizia il gioco
-  init();
-
-  // Mostra messaggio di conferma
-  showNotification("Nuova partita iniziata!", "success");
-}
-
-function undoMove() {
-
-  if (cronologiaMosse.length <= 1) {
-    showNotification("Non ci sono mosse da annullare!", "error");
-    return;
-  }
-  
-  if (ripristinaStatoGioco()) {
-    showNotification("Mossa annullata!", "success");
-  }
-}
-
-
-function salvaStatoGioco() {
-
-  const stato = {
-    turno: turno,
-    pedine: pedine.map(pedina => ({
-      id: pedina.oggetto.id,
-      tipo: pedina.constructor.name,
-      posizione: { x: pedina.posizione.x, y: pedina.posizione.y },
-      color: pedina.color,
-      src: pedina.oggetto.src,
-      firstMove: pedina.firstMove || false // Salva il flag firstMove se esiste
-    }))
-  };
-  
-
-  cronologiaMosse.push(stato);
-  
-
-  if (cronologiaMosse.length > maxCronologia) {
-    cronologiaMosse.shift();
-  }
-  
-
-  updateUndoButton();
-}
-
-function ripristinaStatoGioco() {
-  if (cronologiaMosse.length === 0) {
-    showNotification("Nessuna mossa da annullare!", "error");
-    return false;
-  }
-  
-
-  const statoToRestore = cronologiaMosse.pop();
-  
-
-  const scacchiera = document.getElementById("scacchiera");
-  const caselle = scacchiera.querySelectorAll(".casella");
-  caselle.forEach(casella => {
-
-    if (!casella.classList.contains("casellaInfo")) {
-      casella.innerHTML = "";
+function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
+    // Crea pedina per scacchiera desktop
+    let imgDesktop = document.createElement("img");
+    imgDesktop.src = imgSrc;
+    imgDesktop.classList.add("pedina");
+    imgDesktop.draggable = true;
+    imgDesktop.addEventListener('dragstart', drag);
+    imgDesktop.id = tipo + posizione.x + posizione.y + "_desktop";
+    imgDesktop.addEventListener('dragover', allowDrop);
+    imgDesktop.addEventListener('drop', drop);
+    
+    // Crea pedina per scacchiera mobile
+    let imgMobile = document.createElement("img");
+    imgMobile.src = imgSrc;
+    imgMobile.classList.add("pedina");
+    imgMobile.draggable = true;
+    imgMobile.addEventListener('dragstart', drag);
+    imgMobile.id = tipo + posizione.x + posizione.y + "_mobile";
+    imgMobile.addEventListener('dragover', allowDrop);
+    imgMobile.addEventListener('drop', drop);
+    
+    // Trova le celle in entrambe le scacchiere
+    let cellaDesktop = document.getElementById("cella" + posizione.x + posizione.y + "_scacchieraDesktop");
+    let cellaMobile = document.getElementById("cella" + posizione.x + posizione.y + "_scacchieraMobile");
+    
+    if (cellaDesktop) {
+        cellaDesktop.appendChild(imgDesktop);
     }
-  });
-  
+    if (cellaMobile) {
+        cellaMobile.appendChild(imgMobile);
+    }
 
-  turno = statoToRestore.turno;
-  
+    // Crea l'oggetto pedina (una sola istanza per entrambe le rappresentazioni visive)
+    let pedina = null;
+    switch (tipo) {
+        case 'PedoneBianco':
+            pedina = new PedoneBianco(imgDesktop, posizione);
+            break;
+        case 'PedoneNero':
+            pedina = new PedoneNero(imgDesktop, posizione);
+            break;
+        case 'TorreBianca':
+            pedina = new Torre(imgDesktop, posizione, color);
+            break;
+        case 'TorreNera':
+            pedina = new Torre(imgDesktop, posizione, color);
+            break;
+        case 'CavalloBianco':
+            pedina = new Cavallo(imgDesktop, posizione, color);
+            break;
+        case 'CavalloNero':
+            pedina = new Cavallo(imgDesktop, posizione, color);
+            break;
+        case 'AlfiereBianco':
+            pedina = new Alfiere(imgDesktop, posizione, color);
+            break;
+        case 'AlfiereNero':
+            pedina = new Alfiere(imgDesktop, posizione, color);
+            break;
+        case 'ReginaBianca':
+            pedina = new Regina(imgDesktop, posizione, color);
+            break;
+        case 'ReginaNera':
+            pedina = new Regina(imgDesktop, posizione, color);
+            break;
+        case 'ReBianco':
+            pedina = new Re(imgDesktop, posizione, color);
+            break;
+        case 'ReNero':
+            pedina = new Re(imgDesktop, posizione, color);
+            break;
+    }
+      // Aggiungi riferimenti alle immagini mobile per sincronizzazione
+    if (pedina) {
+        pedina.imgMobile = imgMobile;
+        addPieceClickHandler(pedina);
+        pedine.push(pedina);
+    }
 
-  pedine = [];
-  statoToRestore.pedine.forEach(pedinaData => {
-    ricrePedina(pedinaData);
-  });
-  
-
-  updateGameStatus();
-  clearHighlights();
-  updateUndoButton();
-  
-  return true;
-}
-
-function ricrePedina(pedinaData) {
-
-  let img = document.createElement("img");
-  img.src = pedinaData.src;
-  img.classList.add("pedina");
-  img.draggable = true;
-  img.addEventListener("dragstart", drag);
-  img.id = pedinaData.id;
-  img.addEventListener("dragover", allowDrop);
-  img.addEventListener("drop", drop);
-  
-
-  let cella = document.getElementById("cella" + pedinaData.posizione.x + pedinaData.posizione.y);
-  cella.appendChild(img);
-
-  let pedina = null;
-  switch (pedinaData.tipo) {
-    case "PedoneBianco":
-      pedina = new PedoneBianco(img, pedinaData.posizione);
-      if (pedinaData.firstMove !== undefined) pedina.firstMove = pedinaData.firstMove;
-      break;
-    case "PedoneNero":
-      pedina = new PedoneNero(img, pedinaData.posizione);
-      if (pedinaData.firstMove !== undefined) pedina.firstMove = pedinaData.firstMove;
-      break;
-    case "Torre":
-      pedina = new Torre(img, pedinaData.posizione, pedinaData.color);
-      break;
-    case "Cavallo":
-      pedina = new Cavallo(img, pedinaData.posizione, pedinaData.color);
-      break;
-    case "Alfiere":
-      pedina = new Alfiere(img, pedinaData.posizione, pedinaData.color);
-      break;
-    case "Regina":
-      pedina = new Regina(img, pedinaData.posizione, pedinaData.color);
-      break;
-    case "Re":
-      pedina = new Re(img, pedinaData.posizione, pedinaData.color);
-      break;
-  }
-  
-  if (pedina) {
-    pedine.push(pedina);
-  }
 }
 
 function updateUndoButton() {
@@ -681,43 +615,142 @@ function changeAIDifficulty() {
   showNotification(`Difficoltà AI cambiata a: ${aiDifficulty}`, "info");
 }
 
-function shouldAIMove() {
-  return aiEnabled && !turno && aiColor === "nero" && !aiThinking;
-}
 
-function makeAIMove() {
-  if (!shouldAIMove()) return;
-  
-  aiThinking = true;
-  updateGameStatus();
-  
-  // Simula tempo di riflessione
-  const thinkingTime = aiDifficulty === "easy" ? 500 : aiDifficulty === "medium" ? 1000 : 1500;
-  
-  setTimeout(() => {
-    const bestMove = findBestMove();
-    if (bestMove) {
-      executeAIMove(bestMove);
+function drop(event) {
+    event.preventDefault();
+    
+    if (!isGameActive) return; // Blocca se il gioco non è attivo
+    
+    // Pulisci sempre le evidenziazioni
+    clearHighlights();
+    
+    let data = event.dataTransfer.getData("id");
+    let target = event.target;
+    if (target.tagName.toLowerCase() === 'img') {
+        target = target.parentNode;
     }
-    aiThinking = false;
-    updateGameStatus();
-  }, thinkingTime);
-}
+    let pedinaOggetto = document.getElementById(data);
+    let pedina = getPedinaByReference(pedinaOggetto);
+    console.log((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero"));
+    
+    if((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero")){        let riga = target.riga;
+        let colonna = target.colonna;
+        let oldPosition = {x: pedina.posizione.x, y: pedina.posizione.y};
+        let nuovaPosizione = {x:riga, y:colonna};
 
-function findBestMove() {
-  const aiPieces = pedine.filter(p => p.color === aiColor);
-  const allMoves = [];
-  
-  // Genera tutte le mosse possibili per l'AI
-  for (const piece of aiPieces) {
-    const moves = getValidMovesForPiece(piece);
-    for (const move of moves) {
-      allMoves.push({
-        piece: piece,
-        from: { x: piece.posizione.x, y: piece.posizione.y },
-        to: move,
-        score: evaluateMove(piece, move)
-      });
+        // Verifica se la mossa è valida secondo le regole del pezzo
+        if (pedina.checkMove(nuovaPosizione)) {
+            const isTargetOccupied = !checkOccupato(nuovaPosizione);
+            
+            if (!isTargetOccupied) {
+                // Mossa normale (casella libera)
+                let cella = document.getElementById(target.id);
+                let cellaMobile = target.id.includes('Desktop') ? 
+                    document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
+                    document.getElementById(target.id.replace('Mobile', 'Desktop'));
+                
+                // Animazione di movimento
+                pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                
+                cella.appendChild(pedina.oggetto);
+                if (cellaMobile && pedina.imgMobile) {
+                    cellaMobile.appendChild(pedina.imgMobile);
+                }
+                  pedina.posizione.x=riga;
+                pedina.posizione.y=colonna;
+                
+                // Reset firstMove per i pedoni dopo la prima mossa
+                if ((pedina.constructor.name === 'PedoneBianco' || pedina.constructor.name === 'PedoneNero') && pedina.firstMove) {
+                    pedina.firstMove = false;
+                }
+                
+                  // Traccia la mossa
+                const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + '-' + getChessNotation(riga, colonna);
+                addMoveToHistory(moveNotation);
+                moveCount++;
+                
+                turno=!turno;
+                updateCurrentPlayer();
+                updateMoveCount();
+                
+                // Reset transizione
+                setTimeout(() => {
+                    pedina.oggetto.style.transition = '';
+                }, 300);
+                
+            } else {
+                // Casella occupata - verifica se è una cattura valida
+                const pieceAtPos = getPieceAtPosition(nuovaPosizione);                if (pieceAtPos && pieceAtPos.color != pedina.color) {
+                    // Cattura pezzo con effetto visivo
+                    let index = pedine.indexOf(pieceAtPos);
+                    if (index !== -1) {
+                        // Aggiungi ai pezzi catturati
+                        const capturedPiece = {
+                            name: getPieceName(pieceAtPos),
+                            imgSrc: pieceAtPos.oggetto.src,
+                            color: pieceAtPos.color
+                        };
+                        
+                        if (pieceAtPos.color === 'bianco') {
+                            capturedPieces.white.push(capturedPiece);
+                        } else {
+                            capturedPieces.black.push(capturedPiece);
+                        }
+                        
+                        // Effetto di cattura
+                        const capturedImg = pieceAtPos.oggetto;
+                        capturedImg.style.transition = 'all 0.5s ease-out';
+                        capturedImg.style.transform = 'scale(0.8) rotate(15deg)';
+                        capturedImg.style.opacity = '0.5';
+                        
+                        setTimeout(() => {
+                            pedine.splice(index, 1);
+                        }, 250);
+                    }
+
+                    let cella = document.getElementById(target.id);
+                    let cellaMobile = target.id.includes('Desktop') ? 
+                        document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
+                        document.getElementById(target.id.replace('Mobile', 'Desktop'));
+                    
+                    // Animazione di cattura
+                    pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    
+                    setTimeout(() => {
+                        cella.innerHTML="";
+                        cella.appendChild(pedina.oggetto);
+                        if (cellaMobile && pedina.imgMobile) {
+                            cellaMobile.innerHTML="";
+                            cellaMobile.appendChild(pedina.imgMobile);
+                        }
+                    }, 150);
+                    
+                    console.log("Mangiato");
+                      // Traccia la mossa con cattura
+                    const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + 'x' + getChessNotation(riga, colonna);
+                    addMoveToHistory(moveNotation);
+                    moveCount++;
+                      pedina.posizione.x=riga;
+                    pedina.posizione.y=colonna;
+                    
+                    // Reset firstMove per i pedoni dopo la prima mossa
+                    if ((pedina.constructor.name === 'PedoneBianco' || pedina.constructor.name === 'PedoneNero') && pedina.firstMove) {
+                        pedina.firstMove = false;
+                    }
+                    
+                    turno=!turno;
+                    
+                    updateCurrentPlayer();
+                    updateMoveCount();
+                    updateCapturedPieces();
+                      // Reset transizione
+                    setTimeout(() => {
+                        pedina.oggetto.style.transition = '';
+                    }, 300);
+                }
+            }
+        }
+
     }
   }
   
@@ -853,29 +886,454 @@ function executeAIMove(move) {
     if (index !== -1) {
       pedine.splice(index, 1);
     }
-    showNotification(`AI ha catturato ${targetPiece.constructor.name}!`, "info");
-  } else {
-    showNotification("AI ha mosso!", "info");
-  }
-  
-  // Muovi il pezzo
-  const targetCell = document.getElementById(`cella${move.to.x}${move.to.y}`);
-  targetCell.innerHTML = "";
-  targetCell.appendChild(move.piece.oggetto);
-  move.piece.posizione.x = move.to.x;
-  move.piece.posizione.y = move.to.y;
-  
-  // Cambia turno
-  turno = !turno;
-  updateGameStatus();
-  clearHighlights();
+    return true;
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  updateGameStatus();
-  
+// ========== FUNZIONI PER L'ESPERIENZA VISIVA MIGLIORATA ==========
 
-  setTimeout(() => {
-    showNotification("💡 Suggerimento: Usa Ctrl+Z per annullare, Ctrl+R per reset", "info");
-  }, 3000);
-});
+function highlightValidMoves(pedina) {
+    clearHighlights();
+    selectedPiece = pedina;
+    
+    // Evidenzia la casella selezionata
+    const currentCell = document.getElementById(`cella${pedina.posizione.x}${pedina.posizione.y}_scacchieraDesktop`);
+    const currentCellMobile = document.getElementById(`cella${pedina.posizione.x}${pedina.posizione.y}_scacchieraMobile`);
+    
+    if (currentCell) {
+        currentCell.classList.add('selected');
+    }
+    if (currentCellMobile) {
+        currentCellMobile.classList.add('selected');
+    }
+    
+    // Trova e evidenzia tutte le mosse valide
+    for (let x = 1; x <= 8; x++) {
+        for (let y = 1; y <= 8; y++) {
+            const targetPosition = {x: x, y: y};
+            
+            if (pedina.checkMove(targetPosition)) {
+                const isOccupied = !checkOccupato(targetPosition);
+                const pieceAtPosition = isOccupied ? getPieceAtPosition(targetPosition) : null;
+                
+                // Verifica se la mossa è valida (casella libera o cattura nemica)
+                if (!isOccupied || (isOccupied && pieceAtPosition && pieceAtPosition.color !== pedina.color)) {
+                    const cellDesktop = document.getElementById(`cella${x}${y}_scacchieraDesktop`);
+                    const cellMobile = document.getElementById(`cella${x}${y}_scacchieraMobile`);
+                    
+                    const isCapture = isOccupied && pieceAtPosition && pieceAtPosition.color !== pedina.color;
+                    const moveClass = isCapture ? 'capture-move' : 'valid-move';
+                    
+                    if (cellDesktop) {
+                        cellDesktop.classList.add(moveClass);
+                        highlightedMoves.push(cellDesktop);
+                    }
+                    if (cellMobile) {
+                        cellMobile.classList.add(moveClass);
+                        highlightedMoves.push(cellMobile);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function clearHighlights() {
+    // Rimuovi evidenziazione dalla casella selezionata
+    if (selectedPiece) {
+        const currentCell = document.getElementById(`cella${selectedPiece.posizione.x}${selectedPiece.posizione.y}_scacchieraDesktop`);
+        const currentCellMobile = document.getElementById(`cella${selectedPiece.posizione.x}${selectedPiece.posizione.y}_scacchieraMobile`);
+        
+        if (currentCell) {
+            currentCell.classList.remove('selected');
+        }
+        if (currentCellMobile) {
+            currentCellMobile.classList.remove('selected');
+        }
+    }
+    
+    // Rimuovi evidenziazione dalle mosse valide
+    highlightedMoves.forEach(cell => {
+        cell.classList.remove('valid-move', 'capture-move');
+    });
+    highlightedMoves = [];
+    selectedPiece = null;
+}
+
+function addPieceClickHandler(pedina) {
+    // Aggiungi click handler per evidenziare le mosse
+    pedina.oggetto.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        if (!isGameActive) return;
+        
+        // Verifica che sia il turno del giocatore giusto
+        const isCorrectTurn = (turno && pedina.color === 'bianco') || (!turno && pedina.color === 'nero');
+        
+        if (isCorrectTurn) {
+            if (selectedPiece === pedina) {
+                clearHighlights();
+            } else {
+                highlightValidMoves(pedina);
+            }
+        }
+    });
+}
+
+// ========== FUNZIONI PER IL TRACKING DEL GIOCO ==========
+
+function startGameTimer() {
+    gameStartTime = Date.now();
+    gameTimer = setInterval(updateGameTime, 1000);
+}
+
+function stopGameTimer() {
+    if (gameTimer) {
+        clearInterval(gameTimer);
+        gameTimer = null;
+    }
+}
+
+function updateGameTime() {
+    if (!gameStartTime) return;
+    
+    const elapsedTime = Date.now() - gameStartTime;
+    const minutes = Math.floor(elapsedTime / 60000);
+    const seconds = Math.floor((elapsedTime % 60000) / 1000);
+    
+    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Aggiorna tutti gli elementi con data-game-time
+    const timeElements = document.querySelectorAll('[data-game-time]');
+    timeElements.forEach(el => el.textContent = timeString);
+}
+
+function updateMoveCount() {
+    const moveElements = document.querySelectorAll('[data-move-count]');
+    moveElements.forEach(el => el.textContent = moveCount.toString());
+}
+
+function updateCurrentPlayer() {
+    const playerSymbol = turno ? '♔' : '♛';
+    const playerName = turno ? 'Giocatore Bianco' : 'Giocatore Nero';
+    const playerColor = turno ? '#ffffff' : '#333333';
+    
+    // Aggiorna simbolo del giocatore
+    const playerElements = document.querySelectorAll('[data-current-player]');
+    playerElements.forEach(el => {
+        el.textContent = playerSymbol;
+        el.style.color = playerColor;
+    });
+    
+    // Aggiorna nome del giocatore
+    const nameElements = document.querySelectorAll('[data-player-name]');
+    nameElements.forEach(el => el.textContent = playerName);
+}
+
+function addToMoveHistory(from, to, piece, captured = null) {
+    const moveNotation = `${piece.constructor.name} ${alphabet[from.x-1]}${from.y} → ${alphabet[to.x-1]}${to.y}`;
+    moveHistory.push({
+        move: moveCount,
+        notation: moveNotation,
+        from: from,
+        to: to,
+        piece: piece,
+        captured: captured,
+        player: turno ? 'Bianco' : 'Nero'
+    });
+    
+    updateMoveHistoryDisplay();
+}
+
+function updateMoveHistoryDisplay() {
+    const historyContainer = document.querySelector('.max-h-48.overflow-y-auto');
+    if (!historyContainer) return;
+    
+    if (moveHistory.length === 0) {
+        historyContainer.innerHTML = '<div class="text-gray-400 text-center py-6 text-sm"><p>Nessuna mossa ancora effettuata</p></div>';
+        return;
+    }
+    
+    const historyHTML = moveHistory.slice(-10).map(move => 
+        `<div class="text-xs text-gray-300 py-1 border-b border-gray-700">
+            <span class="text-blue-400">${move.move}.</span> 
+            <span class="${move.player === 'Bianco' ? 'text-white' : 'text-gray-400'}">${move.notation}</span>
+        </div>`
+    ).join('');
+    
+    historyContainer.innerHTML = historyHTML;
+    historyContainer.scrollTop = historyContainer.scrollHeight;
+}
+
+function addCapturedPiece(piece) {
+    const color = piece.color === 'bianco' ? 'white' : 'black';
+    capturedPieces[color].push(piece);
+    updateCapturedPiecesDisplay();
+}
+
+function updateCapturedPiecesDisplay() {
+    // Aggiorna per mobile
+    const whiteContainerMobile = document.querySelector('[data-captured-white]');
+    const blackContainerMobile = document.querySelector('[data-captured-black]');
+    
+    if (whiteContainerMobile) {
+        if (capturedPieces.white.length === 0) {
+            whiteContainerMobile.innerHTML = '<span class="text-gray-500 text-xs">Nessuno</span>';
+        } else {
+            whiteContainerMobile.innerHTML = capturedPieces.white.map(piece => 
+                `<span class="text-xs bg-gray-700 px-1 rounded">${getPieceSymbol(piece)}</span>`
+            ).join('');
+        }
+    }
+    
+    if (blackContainerMobile) {
+        if (capturedPieces.black.length === 0) {
+            blackContainerMobile.innerHTML = '<span class="text-gray-500 text-xs">Nessuno</span>';
+        } else {
+            blackContainerMobile.innerHTML = capturedPieces.black.map(piece => 
+                `<span class="text-xs bg-gray-700 px-1 rounded">${getPieceSymbol(piece)}</span>`
+            ).join('');
+        }
+    }
+}
+
+function getPieceSymbol(piece) {
+    const symbols = {
+        'PedoneBianco': '♟', 'PedoneNero': '♟',
+        'Torre': '♜', 'Cavallo': '♞', 'Alfiere': '♝',
+        'Regina': '♛', 'Re': '♚'
+    };
+    return symbols[piece.constructor.name] || '?';
+}
+
+function setupEventListeners() {
+    console.log("Configurazione event listeners...");
+    
+    // Event listeners per tutti i pulsanti
+    const newGameButtons = document.querySelectorAll('[data-action="new-game"]');
+    console.log("Pulsanti new-game trovati:", newGameButtons.length);
+    newGameButtons.forEach(btn => {
+        btn.addEventListener('click', restartGame);
+    });
+    
+    const restartButtons = document.querySelectorAll('[data-action="restart"]');
+    console.log("Pulsanti restart trovati:", restartButtons.length);
+    restartButtons.forEach(btn => {
+        btn.addEventListener('click', restartGame);
+    });
+    
+    const undoButtons = document.querySelectorAll('[data-action="undo"]');
+    console.log("Pulsanti undo trovati:", undoButtons.length);
+    undoButtons.forEach(btn => {
+        btn.addEventListener('click', undoLastMove);
+    });
+    
+    const rulesButtons = document.querySelectorAll('[data-action="rules"]');
+    console.log("Pulsanti rules trovati:", rulesButtons.length);
+    rulesButtons.forEach(btn => {
+        btn.addEventListener('click', showRules);
+    });
+    
+    const surrenderButtons = document.querySelectorAll('[data-action="surrender"]');
+    console.log("Pulsanti surrender trovati:", surrenderButtons.length);
+    surrenderButtons.forEach(btn => {
+        btn.addEventListener('click', surrenderGame);
+    });
+    
+    console.log("Event listeners configurati!");
+}
+
+function undoLastMove() {
+    console.log("Funzione undoLastMove chiamata!");
+    if (moveHistory.length === 0) {
+        alert('Nessuna mossa da annullare!');
+        return;
+    }
+    alert('Funzione annulla mossa non ancora implementata completamente. Riavvia la partita per ricominciare.');
+}
+
+function surrenderGame() {
+    console.log("Funzione surrenderGame chiamata!");
+    if (confirm('Sei sicuro di voler abbandonare la partita?')) {
+        console.log("Utente ha confermato l'abbandono");
+        isGameActive = false;
+        stopGameTimer();
+        
+        const winner = turno ? 'Nero' : 'Bianco';
+        alert(`Partita terminata! Il giocatore ${winner} vince per abbandono.`);
+        
+        // Disabilita la scacchiera
+        const cells = document.querySelectorAll('.casella');
+        cells.forEach(cell => {
+            cell.style.pointerEvents = 'none';
+            cell.style.opacity = '0.5';
+        });
+    }
+}
+
+function showRules() {
+    const rulesText = `🏰 REGOLE DEGLI SCACCHI
+
+🎯 OBIETTIVO: Catturare il Re avversario (Scacco Matto)
+
+♟️ MOVIMENTO DEI PEZZI:
+• Pedone: Avanza di 1 casella, cattura in diagonale
+• Torre: Orizzontale e verticale
+• Alfiere: Solo in diagonale
+• Cavallo: A "L" (2+1 caselle)
+• Regina: Come Torre + Alfiere
+• Re: 1 casella in qualsiasi direzione
+
+⚡ REGOLE SPECIALI:
+• Arrocco: Re + Torre si scambiano posizione
+• En passant: Cattura speciale del pedone
+• Promozione: Pedone diventa Regina/Torre/Alfiere/Cavallo
+
+🎮 COME GIOCARE:
+• Clicca su un pezzo per vedere le mosse possibili
+• Trascina i pezzi per muoverli
+• I bianchi giocano per primi
+
+🏆 VITTORIA:
+• Scacco Matto: Re in scacco senza vie di fuga
+• Abbandono: L'avversario si arrende`;
+    
+    alert(rulesText);
+}
+
+function startNewGame() {
+    // Reset variabili
+    moveCount = 0;
+    turno = true;
+    moveHistory = [];
+    capturedPieces = { white: [], black: [] };
+    pedine = [];
+    isGameActive = true;
+    
+    // Pulisci evidenziazioni
+    clearHighlights();
+    
+    // Stop timer esistente
+    stopGameTimer();
+    
+    // Reinizializza gioco
+    init();
+}
+
+function restartGame() {
+    console.log("Funzione restartGame chiamata!");
+    if (confirm('Sei sicuro di voler ricominciare la partita?')) {
+        console.log("Utente ha confermato il restart");
+        startNewGame();
+    }
+}
+
+// Funzioni unificate per l'UI
+function updateMoveCount() {
+    const moveElements = document.querySelectorAll('[data-move-count]');
+    moveElements.forEach(el => el.textContent = moveCount.toString());
+}
+
+function updateCurrentPlayer() {
+    const playerSymbol = turno ? '♔' : '♚';
+    const playerName = turno ? 'Giocatore Bianco' : 'Giocatore Nero';
+    const playerColor = turno ? '#ffffff' : '#333333';
+    
+    // Aggiorna simbolo del giocatore
+    const playerElements = document.querySelectorAll('[data-current-player]');
+    playerElements.forEach(el => {
+        el.textContent = playerSymbol;
+        el.style.color = playerColor;
+    });
+    
+    // Aggiorna nome del giocatore
+    const nameElements = document.querySelectorAll('[data-player-name]');
+    nameElements.forEach(el => el.textContent = playerName);
+}
+
+function addMoveToHistory(move) {
+    moveHistory.push(move);
+    updateMoveHistoryDisplay();
+}
+
+function updateMoveHistoryDisplay() {
+    const historyContainer = document.querySelector('.max-h-48.overflow-y-auto');
+    if (!historyContainer) return;
+    
+    if (moveHistory.length === 0) {
+        historyContainer.innerHTML = '<div class="text-gray-400 text-center py-6 text-sm"><p>Nessuna mossa ancora effettuata</p></div>';
+        return;
+    }
+    
+    let historyHTML = '';
+    moveHistory.forEach((move, index) => {
+        const moveNumber = Math.floor(index / 2) + 1;
+        const isWhiteMove = index % 2 === 0;
+        
+        if (isWhiteMove) {
+            historyHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-700 last:border-b-0">
+                <span class="text-gray-400">${moveNumber}.</span>
+                <span class="text-white">${move}</span>`;
+        } else {
+            historyHTML += `<span class="text-gray-300">${move}</span></div>`;
+        }
+    });
+    
+    historyContainer.innerHTML = historyHTML;
+    historyContainer.scrollTop = historyContainer.scrollHeight;
+}
+
+function updateCapturedPieces() {
+    const whiteCapturedContainer = document.querySelector('[data-captured-white]');
+    const blackCapturedContainer = document.querySelector('[data-captured-black]');
+    
+    if (whiteCapturedContainer) {
+        if (capturedPieces.white.length === 0) {
+            whiteCapturedContainer.innerHTML = '<span class="text-gray-500 text-xs">Nessuno</span>';
+        } else {
+            whiteCapturedContainer.innerHTML = capturedPieces.white.map(piece => 
+                `<img src="${piece.imgSrc}" class="w-6 h-6" title="${piece.name}">`
+            ).join('');
+        }
+    }
+    
+    if (blackCapturedContainer) {
+        if (capturedPieces.black.length === 0) {
+            blackCapturedContainer.innerHTML = '<span class="text-gray-500 text-xs">Nessuno</span>';
+        } else {
+            blackCapturedContainer.innerHTML = capturedPieces.black.map(piece => 
+                `<img src="${piece.imgSrc}" class="w-6 h-6" title="${piece.name}">`
+            ).join('');
+        }
+    }
+}
+
+// Funzione per convertire coordinate in notazione scacchistica
+function getChessNotation(x, y) {
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    return files[x - 1] + y;
+}
+
+// Funzione per ottenere il nome del pezzo
+function getPieceName(pedina) {
+    const pieceNames = {
+        'PedoneBianco': '♙', 'PedoneNero': '♟',
+        'TorreBianca': '♖', 'TorreNera': '♜',
+        'CavalloBianco': '♘', 'CavalloNero': '♞',
+        'AlfiereBianco': '♗', 'AlfiereNero': '♝',
+        'ReginaBianca': '♕', 'ReginaNera': '♛',
+        'ReBianco': '♔', 'ReNero': '♚'
+    };
+    
+    const pieceType = pedina.constructor.name;
+    const color = pedina.color;
+    
+    if (pieceType === 'PedoneBianco') return '♙';
+    if (pieceType === 'PedoneNero') return '♟';
+    if (pieceType === 'Torre') return color === 'bianco' ? '♖' : '♜';
+    if (pieceType === 'Cavallo') return color === 'bianco' ? '♘' : '♞';
+    if (pieceType === 'Alfiere') return color === 'bianco' ? '♗' : '♝';
+    if (pieceType === 'Regina') return color === 'bianco' ? '♕' : '♛';
+    if (pieceType === 'Re') return color === 'bianco' ? '♔' : '♚';
+    
+    return '?';
+}
