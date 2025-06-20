@@ -1,41 +1,312 @@
-#gameArea{
-    position: absolute;
-    top: 50%;  
-    left: 50%; 
+/* CSS PRIORITARIO - FORZA VISUALIZZAZIONE SCACCHIERA */
 
-    transform: translate(-50%, -50%); 
-    width: 880px;
-    height: 880px;
-    background-color: gray;
-  }
+/* Reset completo per le tabelle scacchiera */
+#scacchieraMobile,
+#scacchieraDesktop,
+#scacchieraMobile *,
+#scacchieraDesktop * {
+    box-sizing: border-box !important;
+}
 
-  #scacchiera{
-    margin: 40px;
-    width: 800px;
-    height: 800px;
-  }
+#scacchieraMobile,
+#scacchieraDesktop {
+    width: 560px !important;
+    height: 560px !important;
+    border-collapse: collapse !important;
+    margin: 0 auto !important;
+    display: table !important;
+    position: relative !important;
+    z-index: 1000 !important;
+    background-color: transparent !important;
+    border: 2px solid #444 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 
-  .casella{
-    width: 80px;
-    height: 80px;
-  }
+/* Responsive per mobile */
+@media (max-width: 1024px) {
+    #scacchieraMobile {
+        width: 90vw !important;
+        height: 90vw !important;
+        max-width: 400px !important;
+        max-height: 400px !important;
+    }
+    
+    #scacchieraMobile tr {
+        height: calc(90vw / 9) !important;
+        max-height: calc(400px / 9) !important;
+    }
+    
+    #scacchieraMobile td,
+    #scacchieraMobile .casella {
+        width: calc(90vw / 9) !important;
+        height: calc(90vw / 9) !important;
+        max-width: calc(400px / 9) !important;
+        max-height: calc(400px / 9) !important;
+    }
+}
 
-  .casellaBianca{
-    background-color: #F5DEB3;
-  }
+#scacchieraMobile tr,
+#scacchieraDesktop tr {
+    display: table-row !important;
+    height: 70px !important;
+    width: 100% !important;
+}
 
-  .casellaNera{
-    background-color: #8B4513;
-  }
+#scacchieraMobile td,
+#scacchieraDesktop td,
+.casella {
+    display: table-cell !important;
+    width: 70px !important;
+    height: 70px !important;
+    border: 1px solid #000 !important;
+    position: relative !important;
+    z-index: 900 !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+}
 
-  .casellaInfo{
-    font-weight: bold;
-    font-size: large;
-    text-align: center;
-  }
+.casellaBianca {
+    background-color: #F0D9B5 !important;
+    width: 70px !important;
+    height: 70px !important;
+}
 
-  .pedina{
-    width: 60px;
-    height: 55px;
-    margin: 10px;
-  }
+.casellaNera {
+    background-color: #B58863 !important;
+    width: 70px !important;
+    height: 70px !important;
+}
+
+.casellaInfo {
+    background-color: #e8e8e8 !important;
+    color: #333 !important;
+    font-weight: bold !important;
+    font-size: 12px !important;
+    width: 70px !important;
+    height: 70px !important;
+}
+
+.pedina {
+    width: 50px !important;
+    height: 50px !important;
+    margin: 10px !important;
+    cursor: grab !important;
+    user-select: none !important;
+    position: relative !important;
+    z-index: 1100 !important;
+    display: block !important;
+}
+
+/* Container fixes */
+.chess-board-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-height: 600px !important;
+    min-width: 600px !important;
+}
+
+.chessboard-override {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Override Tailwind completamente */
+.chessboard-override table {
+    display: table !important;
+    border-collapse: collapse !important;
+}
+
+.chessboard-override tr {
+    display: table-row !important;
+}
+
+.chessboard-override td {
+    display: table-cell !important;
+}
+
+/* Responsive: regole già definite sopra per le nuove scacchiere */
+    
+    .casellaInfo {
+        font-size: 10px !important;
+    }
+    
+    .pedina {
+        width: 35px !important;
+        height: 35px !important;
+        margin: 7.5px !important;
+    }
+    
+    .chess-board-container {
+        min-height: 450px !important;
+        min-width: 450px !important;
+    }
+
+
+.pedina:hover {
+    transform: scale(1.1);
+}
+
+.pedina:active {
+    cursor: grabbing;
+    transform: scale(1.05);
+}
+
+/* Fix per il drag and drop delle immagini */
+.pedina {
+    pointer-events: auto;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Animazioni per le mosse valide */
+.casella.valid-move {
+    background-color: rgba(34, 197, 94, 0.3) !important;
+    box-shadow: inset 0 0 0 3px #22c55e;
+}
+
+.casella.selected {
+    background-color: rgba(59, 130, 246, 0.3) !important;
+    box-shadow: inset 0 0 0 3px #3b82f6;
+}
+
+/* Fix per assicurare la visualizzazione della tabella */
+#scacchiera tr {
+    display: table-row !important;
+    height: 70px;
+}
+
+#scacchiera td {
+    display: table-cell !important;
+    vertical-align: middle;
+}
+
+/* Debug: evidenzia il container della scacchiera */
+.chess-board-container {
+    min-height: 560px;
+    min-width: 560px;
+    position: relative;
+    z-index: 1;
+}
+
+#gameArea {
+    min-height: 600px !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* Fix per schermi grandi - assicura che la scacchiera sia visibile */
+@media (min-width: 1025px) {
+    #scacchieraDesktop {
+        width: 560px !important;
+        height: 560px !important;
+        display: table !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .casella {
+        width: 70px !important;
+        height: 70px !important;
+        display: table-cell !important;
+    }
+    
+    .chess-board-container {
+        display: flex !important;
+        justify-content: center !important;
+    }
+}
+
+/* Responsive design per schermi più piccoli */
+@media (max-width: 1024px) {
+    #scacchieraMobile {
+        width: 480px;
+        height: 480px;
+    }
+    
+    .casella {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .pedina {
+        width: 42px;
+        height: 42px;
+        margin: 9px;
+    }
+    
+    .casellaInfo {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 768px) {
+    #scacchiera {
+        width: 400px;
+        height: 400px;
+    }
+    
+    .casella {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .pedina {
+        width: 35px;
+        height: 35px;
+        margin: 7.5px;
+    }
+    
+    .casellaInfo {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 640px) {
+    #scacchiera {
+        width: 320px;
+        height: 320px;
+    }
+    
+    .casella {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .pedina {
+        width: 28px;
+        height: 28px;
+        margin: 6px;
+    }
+    
+    .casellaInfo {
+        font-size: 9px;
+        padding: 1px;
+    }
+}
+
+/* Override per conflitti Tailwind */
+.chessboard-override {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 50 !important;
+}
+
+.chessboard-override table {
+    display: table !important;
+    border-collapse: collapse !important;
+}
+
+.chessboard-override tr {
+    display: table-row !important;
+}
+
+.chessboard-override td {
+    display: table-cell !important;
+}

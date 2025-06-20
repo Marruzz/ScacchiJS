@@ -1,21 +1,256 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>ScacchiJS - Gioco degli Scacchi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'slide-down': 'slideDown 0.3s ease-out',
+                        'fade-in': 'fadeIn 0.5s ease-in'
+                    },
+                    keyframes: {
+                        slideDown: {
+                            '0%': { transform: 'translateY(-10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <script src="pedine.js"></script>
     <script src="scacchi.js"></script>
     <link rel="stylesheet" href="scacchi.css">
 </head>
-<body onload="init()">
-
-    <div id="gameArea">
-
-        <table id="scacchiera"></table>
-
-        
-    </div>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen font-sans" onload="init()">
     
+    <!-- Header -->
+    <header class="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">♔</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">ScacchiJS</h1>
+                        <p class="text-gray-400 text-sm">Gioco degli Scacchi Online</p>
+                    </div>
+                </div>
+                  <div class="flex items-center space-x-4">
+                    <button data-action="new-game" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 shadow-md">
+                        Nuova Partita
+                    </button>
+                    <button data-action="rules" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors duration-200 shadow-md">
+                        Regole
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>    <!-- Main Game Area -->
+    <main class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Layout mobile: stack verticale -->
+        <div class="block lg:hidden space-y-4">            <!-- Mobile: Scacchiera in alto -->
+            <div class="flex justify-center">
+                <div id="gameAreaMobile" class="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-4 border border-gray-700 shadow-2xl w-full max-w-sm">                    <div class="mb-3 text-center">
+                        <h2 class="text-lg font-bold text-white mb-2">Scacchiera</h2>
+                        <div class="h-1 w-12 bg-gradient-to-r from-amber-400 to-amber-600 rounded-full mx-auto"></div>
+                    </div>
+                      <div class="chess-board-container chessboard-override flex justify-center">
+                        <table id="scacchieraMobile" class="border-2 border-gray-600 rounded-lg overflow-hidden shadow-2xl bg-gray-900"></table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile: Info e controlli sotto -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Turno corrente e stats -->
+                <div class="space-y-3">
+                    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 border border-gray-700 shadow-lg">
+                        <h3 class="text-sm font-semibold text-white mb-2 flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                            Turno Corrente
+                        </h3>                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                <span class="text-sm" data-current-player>♔</span>
+                            </div>
+                            <div>
+                                <p class="text-white font-medium text-xs" data-player-name>Giocatore Bianco</p>
+                                <p class="text-gray-400 text-xs">È il tuo turno</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 border border-gray-700 shadow-lg">
+                        <h3 class="text-sm font-semibold text-white mb-2">Statistiche</h3>                        <div class="space-y-1 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Mosse:</span>
+                                <span class="text-white font-medium" data-move-count>0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Tempo:</span>
+                                <span class="text-white font-medium" data-game-time>00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Controlli -->
+                <div class="space-y-3">
+                    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 border border-gray-700 shadow-lg">
+                        <h3 class="text-sm font-semibold text-white mb-2">Controlli</h3>                        <div class="space-y-1">
+                            <button data-action="restart" class="w-full py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs">
+                                Ricomincia
+                            </button>
+                            <button data-action="undo" class="w-full py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs">
+                                Annulla
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 border border-gray-700 shadow-lg">                        <h3 class="text-sm font-semibold text-white mb-2">Pezzi Catturati</h3>
+                        <div class="text-xs text-gray-400">
+                            <p>Bianchi: <span class="text-white">0</span></p>
+                            <div data-captured-white class="min-h-[20px] flex flex-wrap gap-1 mb-2">
+                                <span class="text-gray-500 text-xs">Nessuno</span>
+                            </div>
+                            <p>Neri: <span class="text-white">0</span></p>
+                            <div data-captured-black class="min-h-[20px] flex flex-wrap gap-1">
+                                <span class="text-gray-500 text-xs">Nessuno</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Layout desktop: griglia -->
+        <div class="hidden lg:grid lg:grid-cols-4 gap-6">
+            
+            <!-- Left Panel - Game Info -->
+            <div class="lg:col-span-1 space-y-4">
+                  <!-- Current Player -->
+                <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <h2 class="text-lg font-semibold text-white mb-3 flex items-center">
+                        <span class="w-2 h-2 bg-green-400 rounded-full mr-3 animate-pulse"></span>
+                        Turno Corrente
+                    </h2>                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+                            <span class="text-xl" data-current-player>♔</span>
+                        </div>
+                        <div>
+                            <p class="text-white font-medium text-sm" data-player-name>Giocatore Bianco</p>
+                            <p class="text-gray-400 text-xs">È il tuo turno</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Stats -->
+                <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <h2 class="text-lg font-semibold text-white mb-3">Statistiche</h2>                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Mosse:</span>
+                            <span class="text-white font-medium" data-move-count>0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Tempo:</span>
+                            <span class="text-white font-medium" data-game-time>00:00</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Stato:</span>
+                            <span class="text-green-400 font-medium">In corso</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Captured Pieces -->
+                <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <h2 class="text-lg font-semibold text-white mb-3">Pezzi Catturati</h2>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-gray-400 text-xs mb-1">Bianchi:</p>
+                            <div class="flex flex-wrap gap-1 min-h-[20px]">
+                                <!-- I pezzi catturati saranno aggiunti dinamicamente -->
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-xs mb-1">Neri:</p>
+                            <div class="flex flex-wrap gap-1 min-h-[20px]">
+                                <!-- I pezzi catturati saranno aggiunti dinamicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>            <!-- Center Panel - Chessboard -->
+            <div class="lg:col-span-2 flex justify-center items-start">
+                <div id="gameArea" class="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 shadow-2xl w-full max-w-2xl">                    <div class="mb-4 text-center">
+                        <h2 class="text-xl font-bold text-white mb-2">Scacchiera</h2>
+                        <div class="h-1 w-16 bg-gradient-to-r from-amber-400 to-amber-600 rounded-full mx-auto"></div>
+                    </div>
+                      <div class="chess-board-container chessboard-override flex justify-center">
+                        <table id="scacchieraDesktop" class="border-2 border-gray-600 rounded-lg overflow-hidden shadow-2xl bg-gray-900"></table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Game Controls & History -->
+            <div class="lg:col-span-1 space-y-4">
+                  <!-- Game Controls -->
+                <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <h2 class="text-lg font-semibold text-white mb-3">Controlli</h2>
+                    <div class="space-y-2">
+                        <button class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-md font-medium text-sm">
+                            Ricomincia Partita
+                        </button>
+                        <button class="w-full py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors duration-200 shadow-md font-medium text-sm">
+                            Annulla Mossa
+                        </button>
+                        <button class="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 shadow-md font-medium text-sm">
+                            Abbandona
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Move History -->
+                <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <h2 class="text-lg font-semibold text-white mb-3">Cronologia Mosse</h2>
+                    <div class="max-h-48 overflow-y-auto space-y-1">
+                        <div class="text-gray-400 text-center py-6 text-sm">
+                            <p>Nessuna mossa ancora effettuata</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help -->
+                <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <h2 class="text-lg font-semibold text-white mb-3">Aiuto</h2>
+                    <div class="space-y-1 text-xs text-gray-400">
+                        <p>• Trascina i pezzi per muoverli</p>
+                        <p>• Clicca su un pezzo per vedere le mosse possibili</p>
+                        <p>• I quadrati evidenziati mostrano le mosse valide</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900/80 backdrop-blur-sm border-t border-gray-700 mt-12">
+        <div class="container mx-auto px-6 py-4">
+            <div class="text-center text-gray-400">
+                <p>&copy; 2024 ScacchiJS - Realizzato con JavaScript e Tailwind CSS</p>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>
