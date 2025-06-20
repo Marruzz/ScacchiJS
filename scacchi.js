@@ -12,6 +12,10 @@ let moveHistory = [];
 let capturedPieces = { white: [], black: [] };
 let isGameActive = true;
 
+// Variabili per l'esperienza visiva migliorata
+let selectedPiece = null;
+let highlightedMoves = [];
+
 // Riferimenti alle scacchiere
 let scacchieraMobile = [];
 let scacchieraDesktop = [];
@@ -83,51 +87,46 @@ function generateBoard(tableId = 'scacchieraDesktop'){
     // Pulisco eventuali contenuti precedenti
     tableScacchiera.innerHTML = "";
     
-    let tr = creaRiga(tableScacchiera);
-    tr.id=0;
-    for (let i=0;i<9;i++){
-        let td = null
-        if(i==0){
-            td=creaCasella(tr,"");
-        }else{
-            td=creaCasella(tr,"info");
-            td.innerHTML = alphabet[i-1];
-        }
-    }
-    let count=0;
-    let colonna=8;
-    for(let i=1;i<9;i++){
+    // Genera scacchiera senza coordinate esterne
+    let count = 0;
+    let colonna = 8;
+    for(let i = 0; i < 8; i++){
         let tr = creaRiga(tableScacchiera);
-        tr.id=i;
-        let riga=1;
-        for(let j=0;j<9;j++){
-            if(j==0){
-                td=creaCasella(tr,"info");
-                td.innerHTML = ""+colonna;
-            }else{
-                if(count%2==1){
-                    td=creaCasella(tr,"bianca");
-                }else{
-                    td=creaCasella(tr,"nera");
-                }
-                td.riga=riga;
-                td.colonna=colonna;
-                td.id= "cella"+riga+""+colonna+"_"+tableId;
-                td.classList.add(tableId); // Aggiungi classe per identificare la scacchiera
-                td.addEventListener('dragover', allowDrop);
-                td.addEventListener('drop', drop);
-                currentBoard[riga-1][colonna-1] = td;
-                
-                // Sincronizza con scacchiera principale se necessario
-                if (scacchiera.length === 0) {
-                    scacchiera = scacchieraDesktop.length > 0 ? scacchieraDesktop : scacchieraMobile;
-                }
-                
-                riga++;
+        tr.id = i;
+        let riga = 1;
+        for(let j = 0; j < 8; j++){
+            let td;
+            if(count % 2 == 1){
+                td = creaCasella(tr, "bianca");
+            } else {
+                td = creaCasella(tr, "nera");
             }
+            td.riga = riga;
+            td.colonna = colonna;
+            td.id = "cella" + riga + "" + colonna + "_" + tableId;
+            td.classList.add(tableId); // Aggiungi classe per identificare la scacchiera
+            td.addEventListener('dragover', allowDrop);
+            td.addEventListener('drop', drop);
+            
+            // Aggiungi click handler per pulire le evidenziazioni
+            td.addEventListener('click', function(e) {
+                if (e.target === this && !this.querySelector('.pedina')) {
+                    clearHighlights();
+                }
+            });
+            
+            currentBoard[riga-1][colonna-1] = td;
+            
+            // Sincronizza con scacchiera principale se necessario
+            if (scacchiera.length === 0) {
+                scacchiera = scacchieraDesktop.length > 0 ? scacchieraDesktop : scacchieraMobile;
+            }
+            
+            riga++;
             count++;
         }
         colonna--;
+        count++;
     }
 }
 
@@ -246,10 +245,10 @@ function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
             pedina = new Re(imgDesktop, posizione, color);
             break;
     }
-    
-    // Aggiungi riferimenti alle immagini mobile per sincronizzazione
+      // Aggiungi riferimenti alle immagini mobile per sincronizzazione
     if (pedina) {
         pedina.imgMobile = imgMobile;
+        addPieceClickHandler(pedina);
         pedine.push(pedina);
     }
 }
@@ -304,6 +303,9 @@ function drop(event) {
     
     if (!isGameActive) return; // Blocca se il gioco non è attivo
     
+    // Pulisci sempre le evidenziazioni
+    clearHighlights();
+    
     let data = event.dataTransfer.getData("id");
     let target = event.target;
     if (target.tagName.toLowerCase() === 'img') {
@@ -321,27 +323,42 @@ function drop(event) {
         let nuovaPosizione = {x:riga, y:colonna};
 
         if (pedina.checkMove(nuovaPosizione)&&checkOccupato(nuovaPosizione)){
-            // Mossa normale
+            // Mossa normale con effetto visivo
             let cella = document.getElementById(target.id);
+            let cellaMobile = target.id.includes('Desktop') ? 
+                document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
+                document.getElementById(target.id.replace('Mobile', 'Desktop'));
+            
+            // Animazione di movimento
+            pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            
             cella.appendChild(pedina.oggetto);
+            if (cellaMobile && pedina.imgMobile) {
+                cellaMobile.appendChild(pedina.imgMobile);
+            }
+            
             pedina.posizione.x=riga;
             pedina.posizione.y=colonna;
-            
-            // Traccia la mossa
+              // Traccia la mossa
             const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + '-' + getChessNotation(riga, colonna);
             addMoveToHistory(moveNotation);
-            mosseCount++;
+            moveCount++;
             
             turno=!turno;
             updateCurrentPlayer();
             updateMoveCount();
+            
+            // Reset transizione
+            setTimeout(() => {
+                pedina.oggetto.style.transition = '';
+            }, 300);
             
         }else if(pedina.checkMove(nuovaPosizione)&&!checkOccupato(nuovaPosizione)){
 
             pieceAtPos=getPieceAtPosition(nuovaPosizione);
 
             if(pieceAtPos.color!=pedina.color){
-                // Cattura pezzo
+                // Cattura pezzo con effetto visivo
                 let index = pedine.indexOf(pieceAtPos);
                 if (index !== -1) {
                     // Aggiungi ai pezzi catturati
@@ -357,18 +374,39 @@ function drop(event) {
                         capturedPieces.black.push(capturedPiece);
                     }
                     
-                    pedine.splice(index, 1);
+                    // Effetto di cattura
+                    const capturedImg = pieceAtPos.oggetto;
+                    capturedImg.style.transition = 'all 0.5s ease-out';
+                    capturedImg.style.transform = 'scale(0.8) rotate(15deg)';
+                    capturedImg.style.opacity = '0.5';
+                    
+                    setTimeout(() => {
+                        pedine.splice(index, 1);
+                    }, 250);
                 }
 
                 let cella = document.getElementById(target.id);
-                cella.innerHTML="";
-                cella.appendChild(pedina.oggetto);
-                console.log("Mangiato");
+                let cellaMobile = target.id.includes('Desktop') ? 
+                    document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
+                    document.getElementById(target.id.replace('Mobile', 'Desktop'));
                 
-                // Traccia la mossa con cattura
+                // Animazione di cattura
+                pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                
+                setTimeout(() => {
+                    cella.innerHTML="";
+                    cella.appendChild(pedina.oggetto);
+                    if (cellaMobile && pedina.imgMobile) {
+                        cellaMobile.innerHTML="";
+                        cellaMobile.appendChild(pedina.imgMobile);
+                    }
+                }, 150);
+                
+                console.log("Mangiato");
+                  // Traccia la mossa con cattura
                 const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + 'x' + getChessNotation(riga, colonna);
                 addMoveToHistory(moveNotation);
-                mosseCount++;
+                moveCount++;
                 
                 pedina.posizione.x=riga;
                 pedina.posizione.y=colonna;
@@ -377,6 +415,11 @@ function drop(event) {
                 updateCurrentPlayer();
                 updateMoveCount();
                 updateCapturedPieces();
+                
+                // Reset transizione
+                setTimeout(() => {
+                    pedina.oggetto.style.transition = '';
+                }, 300);
             }
         }
     }
@@ -424,6 +467,96 @@ function isPathClear(start, end) {
         y += yDirection;
     }
     return true;
+}
+
+// ========== FUNZIONI PER L'ESPERIENZA VISIVA MIGLIORATA ==========
+
+function highlightValidMoves(pedina) {
+    clearHighlights();
+    selectedPiece = pedina;
+    
+    // Evidenzia la casella selezionata
+    const currentCell = document.getElementById(`cella${pedina.posizione.x}${pedina.posizione.y}_scacchieraDesktop`);
+    const currentCellMobile = document.getElementById(`cella${pedina.posizione.x}${pedina.posizione.y}_scacchieraMobile`);
+    
+    if (currentCell) {
+        currentCell.classList.add('selected');
+    }
+    if (currentCellMobile) {
+        currentCellMobile.classList.add('selected');
+    }
+    
+    // Trova e evidenzia tutte le mosse valide
+    for (let x = 1; x <= 8; x++) {
+        for (let y = 1; y <= 8; y++) {
+            const targetPosition = {x: x, y: y};
+            
+            if (pedina.checkMove(targetPosition)) {
+                const isOccupied = !checkOccupato(targetPosition);
+                const pieceAtPosition = isOccupied ? getPieceAtPosition(targetPosition) : null;
+                
+                // Verifica se la mossa è valida (casella libera o cattura nemica)
+                if (!isOccupied || (isOccupied && pieceAtPosition && pieceAtPosition.color !== pedina.color)) {
+                    const cellDesktop = document.getElementById(`cella${x}${y}_scacchieraDesktop`);
+                    const cellMobile = document.getElementById(`cella${x}${y}_scacchieraMobile`);
+                    
+                    const isCapture = isOccupied && pieceAtPosition && pieceAtPosition.color !== pedina.color;
+                    const moveClass = isCapture ? 'capture-move' : 'valid-move';
+                    
+                    if (cellDesktop) {
+                        cellDesktop.classList.add(moveClass);
+                        highlightedMoves.push(cellDesktop);
+                    }
+                    if (cellMobile) {
+                        cellMobile.classList.add(moveClass);
+                        highlightedMoves.push(cellMobile);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function clearHighlights() {
+    // Rimuovi evidenziazione dalla casella selezionata
+    if (selectedPiece) {
+        const currentCell = document.getElementById(`cella${selectedPiece.posizione.x}${selectedPiece.posizione.y}_scacchieraDesktop`);
+        const currentCellMobile = document.getElementById(`cella${selectedPiece.posizione.x}${selectedPiece.posizione.y}_scacchieraMobile`);
+        
+        if (currentCell) {
+            currentCell.classList.remove('selected');
+        }
+        if (currentCellMobile) {
+            currentCellMobile.classList.remove('selected');
+        }
+    }
+    
+    // Rimuovi evidenziazione dalle mosse valide
+    highlightedMoves.forEach(cell => {
+        cell.classList.remove('valid-move', 'capture-move');
+    });
+    highlightedMoves = [];
+    selectedPiece = null;
+}
+
+function addPieceClickHandler(pedina) {
+    // Aggiungi click handler per evidenziare le mosse
+    pedina.oggetto.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        if (!isGameActive) return;
+        
+        // Verifica che sia il turno del giocatore giusto
+        const isCorrectTurn = (turno && pedina.color === 'bianco') || (!turno && pedina.color === 'nero');
+        
+        if (isCorrectTurn) {
+            if (selectedPiece === pedina) {
+                clearHighlights();
+            } else {
+                highlightValidMoves(pedina);
+            }
+        }
+    });
 }
 
 // ========== FUNZIONI PER IL TRACKING DEL GIOCO ==========
@@ -553,13 +686,13 @@ function getPieceSymbol(piece) {
 }
 
 function setupEventListeners() {
-    // Event listeners per i pulsanti
+    // Event listeners per tutti i pulsanti
     document.querySelectorAll('[data-action="new-game"]').forEach(btn => {
-        btn.addEventListener('click', startNewGame);
+        btn.addEventListener('click', restartGame);
     });
     
     document.querySelectorAll('[data-action="restart"]').forEach(btn => {
-        btn.addEventListener('click', startNewGame);
+        btn.addEventListener('click', restartGame);
     });
     
     document.querySelectorAll('[data-action="undo"]').forEach(btn => {
@@ -569,6 +702,65 @@ function setupEventListeners() {
     document.querySelectorAll('[data-action="rules"]').forEach(btn => {
         btn.addEventListener('click', showRules);
     });
+    
+    document.querySelectorAll('[data-action="surrender"]').forEach(btn => {
+        btn.addEventListener('click', surrenderGame);
+    });
+}
+
+function undoLastMove() {
+    if (moveHistory.length === 0) {
+        alert('Nessuna mossa da annullare!');
+        return;
+    }
+    alert('Funzione annulla mossa non ancora implementata completamente. Riavvia la partita per ricominciare.');
+}
+
+function surrenderGame() {
+    if (confirm('Sei sicuro di voler abbandonare la partita?')) {
+        isGameActive = false;
+        stopGameTimer();
+        
+        const winner = turno ? 'Nero' : 'Bianco';
+        alert(`Partita terminata! Il giocatore ${winner} vince per abbandono.`);
+        
+        // Disabilita la scacchiera
+        const cells = document.querySelectorAll('.casella');
+        cells.forEach(cell => {
+            cell.style.pointerEvents = 'none';
+            cell.style.opacity = '0.5';
+        });
+    }
+}
+
+function showRules() {
+    const rulesText = `🏰 REGOLE DEGLI SCACCHI
+
+🎯 OBIETTIVO: Catturare il Re avversario (Scacco Matto)
+
+♟️ MOVIMENTO DEI PEZZI:
+• Pedone: Avanza di 1 casella, cattura in diagonale
+• Torre: Orizzontale e verticale
+• Alfiere: Solo in diagonale
+• Cavallo: A "L" (2+1 caselle)
+• Regina: Come Torre + Alfiere
+• Re: 1 casella in qualsiasi direzione
+
+⚡ REGOLE SPECIALI:
+• Arrocco: Re + Torre si scambiano posizione
+• En passant: Cattura speciale del pedone
+• Promozione: Pedone diventa Regina/Torre/Alfiere/Cavallo
+
+🎮 COME GIOCARE:
+• Clicca su un pezzo per vedere le mosse possibili
+• Trascina i pezzi per muoverli
+• I bianchi giocano per primi
+
+🏆 VITTORIA:
+• Scacco Matto: Re in scacco senza vie di fuga
+• Abbandono: L'avversario si arrende`;
+    
+    alert(rulesText);
 }
 
 function startNewGame() {
@@ -578,6 +770,10 @@ function startNewGame() {
     moveHistory = [];
     capturedPieces = { white: [], black: [] };
     pedine = [];
+    isGameActive = true;
+    
+    // Pulisci evidenziazioni
+    clearHighlights();
     
     // Stop timer esistente
     stopGameTimer();
@@ -586,114 +782,42 @@ function startNewGame() {
     init();
 }
 
-function undoLastMove() {
-    // Implementazione base - può essere espansa
-    if (moveHistory.length > 0) {
-        moveHistory.pop();
-        moveCount = Math.max(0, moveCount - 1);
-        updateMoveCount();
-        updateMoveHistoryDisplay();
-        alert('Funzione annulla mossa in sviluppo!');
+function restartGame() {
+    if (confirm('Sei sicuro di voler ricominciare la partita?')) {
+        startNewGame();
     }
 }
 
-function showRules() {
-    const rulesText = `
-REGOLE DEGLI SCACCHI:
-
-OBIETTIVO: Dare scacco matto al re avversario
-
-MOVIMENTO DEI PEZZI:
-• PEDONE: Avanza di 1 casella, prima mossa può avanzare di 2
-• TORRE: Si muove orizzontalmente e verticalmente 
-• ALFIERE: Si muove diagonalmente
-• CAVALLO: Movimento a "L" (2+1 caselle)
-• REGINA: Combina torre e alfiere
-• RE: Si muove di 1 casella in qualsiasi direzione
-
-REGOLE SPECIALI:
-• Arrocco: Mossa speciale con re e torre
-• En passant: Cattura speciale del pedone
-• Promozione: Il pedone arriva all'ottava traversa
-
-SCACCO: Il re è sotto attacco
-SCACCO MATTO: Il re non può sfuggire all'attacco
-    `;
-    
-    alert(rulesText);
-}
-
-// Funzioni per il timer di gioco
-function startGameTimer() {
-    if (!startTime) {
-        startTime = new Date();
-    }
-    
-    gameTimer = setInterval(function() {
-        updateGameTime();
-    }, 1000);
-}
-
-function updateGameTime() {
-    if (!startTime) return;
-    
-    const now = new Date();
-    const elapsed = Math.floor((now - startTime) / 1000);
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
-    
-    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    
-    // Aggiorna tutti gli elementi tempo
-    const timeElements = document.querySelectorAll('[data-game-time]');
-    timeElements.forEach(el => {
-        el.textContent = timeString;
-    });
-}
-
-function stopGameTimer() {
-    if (gameTimer) {
-        clearInterval(gameTimer);
-        gameTimer = null;
-    }
-}
-
-// Funzioni per aggiornare l'UI
+// Funzioni unificate per l'UI
 function updateMoveCount() {
     const moveElements = document.querySelectorAll('[data-move-count]');
-    moveElements.forEach(el => {
-        el.textContent = mosseCount;
-    });
+    moveElements.forEach(el => el.textContent = moveCount.toString());
 }
 
 function updateCurrentPlayer() {
+    const playerSymbol = turno ? '♔' : '♚';
+    const playerName = turno ? 'Giocatore Bianco' : 'Giocatore Nero';
+    const playerColor = turno ? '#ffffff' : '#333333';
+    
+    // Aggiorna simbolo del giocatore
     const playerElements = document.querySelectorAll('[data-current-player]');
-    const playerColorElements = document.querySelectorAll('[data-player-color]');
-    const playerNameElements = document.querySelectorAll('[data-player-name]');
-    
-    const currentPlayer = turno ? 'Bianco' : 'Nero';
-    const currentPlayerIcon = turno ? '♔' : '♚';
-    
     playerElements.forEach(el => {
-        el.textContent = currentPlayerIcon;
+        el.textContent = playerSymbol;
+        el.style.color = playerColor;
     });
     
-    playerColorElements.forEach(el => {
-        el.textContent = currentPlayer;
-    });
-    
-    playerNameElements.forEach(el => {
-        el.textContent = `Giocatore ${currentPlayer}`;
-    });
+    // Aggiorna nome del giocatore
+    const nameElements = document.querySelectorAll('[data-player-name]');
+    nameElements.forEach(el => el.textContent = playerName);
 }
 
 function addMoveToHistory(move) {
     moveHistory.push(move);
-    updateMoveHistory();
+    updateMoveHistoryDisplay();
 }
 
-function updateMoveHistory() {
-    const historyContainer = document.querySelector('[data-move-history]');
+function updateMoveHistoryDisplay() {
+    const historyContainer = document.querySelector('.max-h-48.overflow-y-auto');
     if (!historyContainer) return;
     
     if (moveHistory.length === 0) {
@@ -724,142 +848,24 @@ function updateCapturedPieces() {
     const blackCapturedContainer = document.querySelector('[data-captured-black]');
     
     if (whiteCapturedContainer) {
-        whiteCapturedContainer.innerHTML = capturedPieces.white.map(piece => 
-            `<img src="${piece.imgSrc}" class="w-6 h-6" title="${piece.name}">`
-        ).join('');
-        
         if (capturedPieces.white.length === 0) {
             whiteCapturedContainer.innerHTML = '<span class="text-gray-500 text-xs">Nessuno</span>';
+        } else {
+            whiteCapturedContainer.innerHTML = capturedPieces.white.map(piece => 
+                `<img src="${piece.imgSrc}" class="w-6 h-6" title="${piece.name}">`
+            ).join('');
         }
     }
     
     if (blackCapturedContainer) {
-        blackCapturedContainer.innerHTML = capturedPieces.black.map(piece => 
-            `<img src="${piece.imgSrc}" class="w-6 h-6" title="${piece.name}">`
-        ).join('');
-        
         if (capturedPieces.black.length === 0) {
             blackCapturedContainer.innerHTML = '<span class="text-gray-500 text-xs">Nessuno</span>';
+        } else {
+            blackCapturedContainer.innerHTML = capturedPieces.black.map(piece => 
+                `<img src="${piece.imgSrc}" class="w-6 h-6" title="${piece.name}">`
+            ).join('');
         }
     }
-}
-
-// Funzioni per i controlli del gioco
-function restartGame() {
-    if (confirm('Sei sicuro di voler ricominciare la partita?')) {
-        // Reset variabili
-        mosseCount = 0;
-        moveHistory = [];
-        capturedPieces = { white: [], black: [] };
-        turno = true;
-        isGameActive = true;
-        pedine = [];
-        
-        // Reset timer
-        stopGameTimer();
-        startTime = null;
-        
-        // Ricostruisci il gioco
-        init();
-        startGameTimer();
-        
-        // Aggiorna UI
-        updateMoveCount();
-        updateCurrentPlayer();
-        updateMoveHistory();
-        updateCapturedPieces();
-        updateGameTime();
-    }
-}
-
-function undoLastMove() {
-    if (moveHistory.length === 0) {
-        alert('Nessuna mossa da annullare!');
-        return;
-    }
-    
-    // Implementazione semplificata - riavvia il gioco
-    alert('Funzione annulla mossa non ancora implementata completamente. Riavvia la partita per ricominciare.');
-}
-
-function surrenderGame() {
-    if (confirm('Sei sicuro di voler abbandonare la partita?')) {
-        isGameActive = false;
-        stopGameTimer();
-        
-        const winner = turno ? 'Nero' : 'Bianco';
-        alert(`Partita terminata! Il giocatore ${winner} vince per abbandono.`);
-        
-        // Disabilita la scacchiera
-        const cells = document.querySelectorAll('.casella');
-        cells.forEach(cell => {
-            cell.style.pointerEvents = 'none';
-            cell.style.opacity = '0.5';
-        });
-    }
-}
-
-function showRules() {
-    const rulesText = `
-🏰 REGOLE DEGLI SCACCHI
-
-🎯 OBIETTIVO: Catturare il Re avversario (Scacco Matto)
-
-♟️ MOVIMENTO DEI PEZZI:
-• Pedone: Avanza di 1 casella, cattura in diagonale
-• Torre: Orizzontale e verticale
-• Alfiere: Solo in diagonale
-• Cavallo: A "L" (2+1 caselle)
-• Regina: Come Torre + Alfiere
-• Re: 1 casella in qualsiasi direzione
-
-⚡ REGOLE SPECIALI:
-• Arrocco: Re + Torre si scambiano posizione
-• En passant: Cattura speciale del pedone
-• Promozione: Pedone diventa Regina/Torre/Alfiere/Cavallo
-
-🎮 COME GIOCARE:
-• Trascina i pezzi per muoverli
-• I bianchi giocano per primi
-• Non puoi mettere il tuo Re in scacco
-
-🏆 VITTORIA:
-• Scacco Matto: Re in scacco senza vie di fuga
-• Abbandono: L'avversario si arrende
-    `;
-    
-    alert(rulesText);
-}
-
-// Setup event listeners per i pulsanti
-function setupEventListeners() {
-    // Pulsante Nuova Partita (header)
-    const newGameBtns = document.querySelectorAll('[data-action="new-game"]');
-    newGameBtns.forEach(btn => {
-        btn.addEventListener('click', restartGame);
-    });
-    
-    // Pulsante Regole (header)
-    const rulesBtns = document.querySelectorAll('[data-action="rules"]');
-    rulesBtns.forEach(btn => {
-        btn.addEventListener('click', showRules);
-    });
-    
-    // Pulsanti controlli gioco
-    const restartBtns = document.querySelectorAll('[data-action="restart"]');
-    restartBtns.forEach(btn => {
-        btn.addEventListener('click', restartGame);
-    });
-    
-    const undoBtns = document.querySelectorAll('[data-action="undo"]');
-    undoBtns.forEach(btn => {
-        btn.addEventListener('click', undoLastMove);
-    });
-    
-    const surrenderBtns = document.querySelectorAll('[data-action="surrender"]');
-    surrenderBtns.forEach(btn => {
-        btn.addEventListener('click', surrenderGame);
-    });
 }
 
 // Funzione per convertire coordinate in notazione scacchistica
