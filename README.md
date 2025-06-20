@@ -25,7 +25,7 @@ Un elegante gioco di scacchi sviluppato in JavaScript con un'interfaccia moderna
 
 ## 🚀 Come Utilizzare
 
-1. Apri il file `scacchi.html` in un browser moderno
+1. Apri il file `scacchi.html` in un browser
 2. Il gioco si caricherà automaticamente con la posizione iniziale
 3. Trascina i pezzi per muoverli (solo nel tuo turno)
 4. Le caselle valide si illumineranno quando selezioni un pezzo

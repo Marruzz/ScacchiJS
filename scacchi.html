@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scacchi JS - Chess Game</title>
+    <title>♔ Scacchi ♛</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,52 +13,159 @@
                         'chess-light': '#F0D9B5',
                         'chess-dark': '#B58863',
                         'chess-border': '#8B4513',
-                        'chess-bg': '#2D3748'
+                        'chess-bg': '#1a1a2e',
+                        'chess-accent': '#16213e',
+                        'royal-gold': '#FFD700',
+                        'royal-silver': '#C0C0C0'
+                    },
+                    fontFamily: {
+                        'chess': ['Georgia', 'serif'],
+                        'modern': ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'chess': '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                        'piece': '0 8px 32px rgba(0, 0, 0, 0.3)'
                     }
                 }
             }
         }
-    </script>
+    </script>    <script src="chess-svg.js"></script>
     <script src="pedine.js"></script>
     <script src="scacchi.js"></script>
     <link rel="stylesheet" href="scacchi.css" />
-  </head>
-  <body onload="init()" class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
-    
-    <header class="text-center py-8">
-        <h1 class="text-5xl font-bold text-white mb-2 tracking-wide">♔ Scacchi JS ♛</h1>
-        <p class="text-gray-300 text-lg">Un elegante gioco di scacchi in JavaScript</p>
-    </header>
-
-    
-    <div class="text-center mb-6">
-        <div id="gameStatus" class="inline-block bg-white/10 backdrop-blur-md rounded-xl px-6 py-3 text-white text-lg font-semibold shadow-lg border border-white/20">
-            <span id="currentPlayer">Turno del Bianco</span>
-        </div>
-    </div>
-
-    
-    <div class="flex justify-center items-center px-4">
-        <div id="gameArea" class="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
+  </head>  <body onload="init()" class="bg-gradient-to-br from-chess-bg via-chess-accent to-slate-900 min-h-screen font-modern overflow-x-hidden">
+      <!-- SVG Definitions for Chess Pieces -->
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <!-- Royal Gradients for White Pieces -->
+            <linearGradient id="royalWhiteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+                <stop offset="30%" style="stop-color:#FFD700;stop-opacity:0.8" />
+                <stop offset="70%" style="stop-color:#F0F8FF;stop-opacity:0.9" />
+                <stop offset="100%" style="stop-color:#E6E6FA;stop-opacity:1" />
+            </linearGradient>
             
-            <div class="bg-chess-border rounded-2xl p-4 shadow-inner">
-                <table id="scacchiera" class="rounded-xl overflow-hidden shadow-lg"></table>
+            <!-- Royal Gradients for Black Pieces -->
+            <linearGradient id="royalBlackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#2F2F4F;stop-opacity:1" />
+                <stop offset="30%" style="stop-color:#C0C0C0;stop-opacity:0.8" />
+                <stop offset="70%" style="stop-color:#1C1C1C;stop-opacity:0.9" />
+                <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+            </linearGradient>
+            
+            <!-- Radial gradients for highlights -->
+            <radialGradient id="whiteHighlight" cx="50%" cy="30%">
+                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8"/>
+                <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.2"/>
+            </radialGradient>
+            
+            <radialGradient id="blackHighlight" cx="50%" cy="30%">
+                <stop offset="0%" style="stop-color:#C0C0C0;stop-opacity:0.8"/>
+                <stop offset="100%" style="stop-color:#2F2F4F;stop-opacity:0.3"/>
+            </radialGradient>
+            
+            <!-- Glow effects -->
+            <filter id="royalGlow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+            
+            <!-- Shadow effects -->
+            <filter id="pieceShadow">
+                <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="black" flood-opacity="0.3"/>
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="relative z-10">
+        <!-- Header with Modern Design -->
+        <header class="text-center py-12 relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+            <div class="relative z-10">
+                <h1 class="text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-royal-gold via-white to-royal-silver mb-4 tracking-wider font-chess">
+                    ♔ SCACCHI ♛
+                </h1>
+                <p class="text-gray-300 text-xl font-light tracking-wide">Maestria • Strategia • Eleganza</p>
+                <div class="mt-4 w-32 h-1 bg-gradient-to-r from-royal-gold to-royal-silver mx-auto rounded-full"></div>
             </div>
-              
-            <div class="mt-6 flex justify-center space-x-4">
-                <button onclick="resetGame()" class="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    🔄 Nuova Partita
-                </button>
-                <button onclick="undoMove()" id="undoButton" class="bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                    ↶ Annulla Mossa <span id="undoCount" class="bg-white/20 px-2 py-1 rounded-full text-xs ml-2">0</span>
-                </button>
+        </header>
+
+        <!-- Game Status with Enhanced Design -->
+        <div class="text-center mb-8">
+            <div id="gameStatus" class="inline-block bg-white/10 backdrop-blur-xl rounded-2xl px-8 py-4 text-white text-xl font-semibold shadow-chess border border-white/20 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10"></div>
+                <span id="currentPlayer" class="relative z-10">Turno del Bianco</span>
             </div>
         </div>
-    </div>
 
-    
-    <footer class="text-center mt-12 pb-8">
-        <p class="text-gray-400 text-sm">Realizzato con ❤️ usando JavaScript e Tailwind CSS</p>
-    </footer>
+        <!-- Enhanced Chess Board Container -->
+        <div class="flex justify-center items-center px-4">
+            <div id="gameArea" class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-chess border border-white/20 relative overflow-hidden">
+                <!-- Decorative background pattern -->
+                <div class="absolute inset-0 opacity-10">
+                    <div class="absolute top-4 left-4 w-16 h-16 border-2 border-royal-gold rounded-full"></div>
+                    <div class="absolute top-4 right-4 w-16 h-16 border-2 border-royal-silver rounded-full"></div>
+                    <div class="absolute bottom-4 left-4 w-16 h-16 border-2 border-royal-silver rounded-full"></div>
+                    <div class="absolute bottom-4 right-4 w-16 h-16 border-2 border-royal-gold rounded-full"></div>
+                </div>
+                
+                <!-- Chess Board -->
+                <div class="bg-gradient-to-br from-chess-border via-amber-900 to-chess-border rounded-3xl p-6 shadow-inner relative z-10">
+                    <table id="scacchiera" class="rounded-2xl overflow-hidden shadow-2xl border-4 border-amber-800"></table>
+                </div>
+                
+                <!-- Enhanced Control Panel -->
+                <div class="mt-8 flex justify-center space-x-6 flex-wrap gap-4">
+                    <button onclick="resetGame()" class="group bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 border border-emerald-400/50">
+                        <span class="flex items-center gap-2">
+                            <span class="text-2xl group-hover:rotate-180 transition-transform duration-300">🔄</span>
+                            Nuova Partita
+                        </span>
+                    </button>                    <button onclick="undoMove()" id="undoButton" class="group bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 border border-amber-400/50">
+                        <span class="flex items-center gap-2">
+                            <span class="text-2xl group-hover:-rotate-12 transition-transform duration-300">↶</span>
+                            Annulla Mossa 
+                            <span id="undoCount" class="bg-white/30 px-3 py-1 rounded-full text-sm ml-2">0</span>
+                        </span>
+                    </button>
+                    <button onclick="toggleAI()" id="aiToggle" class="group bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 border border-purple-400/50">
+                        <span class="flex items-center gap-2">
+                            <span class="text-2xl group-hover:scale-110 transition-transform duration-300">🤖</span>
+                            Abilita AI
+                        </span>
+                    </button>
+                </div>
+                
+                <!-- Enhanced AI Controls -->
+                <div id="aiControls" class="mt-6 flex justify-center items-center space-x-6 hidden">
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+                        <label class="text-white text-sm font-medium mb-2 block">Difficoltà AI</label>
+                        <select id="aiDifficultySelect" onchange="changeAIDifficulty()" class="bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-lg border border-white/20 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <option value="easy" class="text-black">🟢 Facile</option>
+                            <option value="medium" selected class="text-black">🟡 Medio</option>
+                            <option value="hard" class="text-black">🔴 Difficile</option>
+                        </select>
+                    </div>
+                    <div id="aiStatus" class="text-white px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+                        <span class="font-medium">AI: Disabilitata</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Footer -->
+        <footer class="text-center mt-16 pb-12">
+            <div class="max-w-2xl mx-auto">
+                <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-8"></div>
+                <p class="text-gray-400 text-sm font-light">
+                    Realizzato con <span class="text-red-400">❤️</span> utilizzando JavaScript puro e design moderno
+                </p>
+                <p class="text-gray-500 text-xs mt-2">SVG Chess Pieces • Tailwind CSS • Responsive Design</p>
+            </div>
+        </footer>
+    </div>
   </body>
 </html>

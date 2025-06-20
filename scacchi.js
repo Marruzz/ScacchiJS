@@ -95,160 +95,160 @@ function creaCasella(riga, tipo) {
 
 
 function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
-  let img = document.createElement("img");
-  img.src = imgSrc;
-  img.classList.add("pedina");
-  img.draggable = true;
-  img.addEventListener("dragstart", drag);
-  img.id = tipo + posizione.x + posizione.y;
-  img.addEventListener("dragover", allowDrop);
-  img.addEventListener("drop", drop);
+  // Create SVG piece instead of image
+  let pedinaSVG = createSVGPiece(tipo, color);
+  pedinaSVG.classList.add("pedina");
+  pedinaSVG.draggable = true;
+  pedinaSVG.addEventListener("dragstart", drag);
+  pedinaSVG.id = tipo + posizione.x + posizione.y;
+  pedinaSVG.addEventListener("dragover", allowDrop);
+  pedinaSVG.addEventListener("drop", drop);
+  
   let cella = document.getElementById("cella" + posizione.x + posizione.y);
-  cella.appendChild(img);
+  cella.appendChild(pedinaSVG);
 
   let pedina = null;
   switch (tipo) {
     case "PedoneBianco":
-      pedina = new PedoneBianco(img, posizione);
+      pedina = new PedoneBianco(pedinaSVG, posizione);
       break;
     case "PedoneNero":
-      pedina = new PedoneNero(img, posizione);
+      pedina = new PedoneNero(pedinaSVG, posizione);
       break;
     case "TorreBianca":
-      pedina = new Torre(img, posizione, color);
+      pedina = new Torre(pedinaSVG, posizione, color);
       break;
     case "TorreNera":
-      pedina = new Torre(img, posizione, color);
+      pedina = new Torre(pedinaSVG, posizione, color);
       break;
     case "CavalloBianco":
-      pedina = new Cavallo(img, posizione, color);
+      pedina = new Cavallo(pedinaSVG, posizione, color);
       break;
     case "CavalloNero":
-      pedina = new Cavallo(img, posizione, color);
+      pedina = new Cavallo(pedinaSVG, posizione, color);
       break;
     case "AlfiereBianco":
-      pedina = new Alfiere(img, posizione, color);
-      break;
+      pedina = new Alfiere(pedinaSVG, posizione, color);      break;
     case "AlfiereNero":
-      pedina = new Alfiere(img, posizione, color);
+      pedina = new Alfiere(pedinaSVG, posizione, color);
       break;
     case "ReginaBianca":
-      pedina = new Regina(img, posizione, color);
+      pedina = new Regina(pedinaSVG, posizione, color);
       break;
     case "ReginaNera":
-      pedina = new Regina(img, posizione, color);
+      pedina = new Regina(pedinaSVG, posizione, color);
       break;
     case "ReBianco":
-      pedina = new Re(img, posizione, color);
+      pedina = new Re(pedinaSVG, posizione, color);
       break;
     case "ReNero":
-      pedina = new Re(img, posizione, color);
+      pedina = new Re(pedinaSVG, posizione, color);
       break;
   }
   pedine.push(pedina);
 }
 
 function posizionaPedine() {
-
+  // Create pawns
   for (let i = 0; i < 8; i++) {
     creaEPiazzaPedina(
       "PedoneBianco",
       { x: 1 + i, y: 2 },
-      "./img/PedoneBianco.png",
+      null, // SVG doesn't need image source
       "bianco"
     );
     creaEPiazzaPedina(
       "PedoneNero",
       { x: 1 + i, y: 7 },
-      "./img/PedoneNero.png",
+      null, // SVG doesn't need image source
       "nero"
     );
   }
-
-
+  // Create rooks
   creaEPiazzaPedina(
     "TorreBianca",
     { x: 1, y: 1 },
-    "./img/TorreBianca.png",
+    null,
     "bianco"
   );
   creaEPiazzaPedina(
     "TorreBianca",
     { x: 8, y: 1 },
-    "./img/TorreBianca.png",
+    null,
     "bianco"
   );
-  creaEPiazzaPedina("TorreNera", { x: 1, y: 8 }, "./img/TorreNera.png", "nero");
-  creaEPiazzaPedina("TorreNera", { x: 8, y: 8 }, "./img/TorreNera.png", "nero");
+  creaEPiazzaPedina("TorreNera", { x: 1, y: 8 }, null, "nero");
+  creaEPiazzaPedina("TorreNera", { x: 8, y: 8 }, null, "nero");
 
-
+  // Create knights
   creaEPiazzaPedina(
     "CavalloBianco",
     { x: 2, y: 1 },
-    "./img/CavalloBianco.png",
+    null,
     "bianco"
   );
   creaEPiazzaPedina(
     "CavalloBianco",
     { x: 7, y: 1 },
-    "./img/CavalloBianco.png",
+    null,
     "bianco"
   );
   creaEPiazzaPedina(
     "CavalloNero",
     { x: 2, y: 8 },
-    "./img/CavalloNero.png",
+    null,
     "nero"
   );
   creaEPiazzaPedina(
     "CavalloNero",
     { x: 7, y: 8 },
-    "./img/CavalloNero.png",
+    null,
     "nero"
   );
 
-
+  // Create bishops
   creaEPiazzaPedina(
     "AlfiereBianco",
     { x: 3, y: 1 },
-    "./img/AlfiereBianco.png",
+    null,
     "bianco"
   );
   creaEPiazzaPedina(
     "AlfiereBianco",
     { x: 6, y: 1 },
-    "./img/AlfiereBianco.png",
+    null,
     "bianco"
   );
   creaEPiazzaPedina(
     "AlfiereNero",
     { x: 3, y: 8 },
-    "./img/AlfiereNero.png",
+    null,
     "nero"
   );
   creaEPiazzaPedina(
     "AlfiereNero",
     { x: 6, y: 8 },
-    "./img/AlfiereNero.png",
+    null,
     "nero"
   );
 
-
+  // Create queens
   creaEPiazzaPedina(
     "ReginaBianca",
     { x: 4, y: 1 },
-    "./img/ReginaBianca.png",
+    null,
     "bianco"
   );
   creaEPiazzaPedina(
     "ReginaNera",
     { x: 4, y: 8 },
-    "./img/ReginaNera.png",
+    null,
     "nero"
   );
 
-  creaEPiazzaPedina("ReBianco", { x: 5, y: 1 }, "./img/ReBianco.png", "bianco");
-  creaEPiazzaPedina("ReNero", { x: 5, y: 8 }, "./img/ReNero.png", "nero");
+  // Create kings
+  creaEPiazzaPedina("ReBianco", { x: 5, y: 1 }, null, "bianco");
+  creaEPiazzaPedina("ReNero", { x: 5, y: 8 }, null, "nero");
 
 
   pedine.forEach(pedina => {
@@ -298,10 +298,9 @@ function drop(event) {
   console.log(
     (turno == true && pedina.color == "bianco") ||
       (turno == false && pedina.color == "nero")
-  );
-  if (
+  );  if (
     (turno == true && pedina.color == "bianco") ||
-    (turno == false && pedina.color == "nero")
+    (turno == false && pedina.color == "nero" && !aiEnabled)
   ) {
     let riga = target.riga;
     let colonna = target.colonna;    nuovaPosizione = { x: riga, y: colonna };
@@ -330,22 +329,29 @@ function drop(event) {
       cella.innerHTML = "";
       cella.appendChild(pedina.oggetto);
       pedina.posizione.x = riga;
-      pedina.posizione.y = colonna;
-      turno = !turno;
+      pedina.posizione.y = colonna;      turno = !turno;
       
-
+      // Aggiorna lo status del gioco e pulisce gli highlight
       updateGameStatus();
       clearHighlights();
+      
+      // Attiva l'AI se è il suo turno
+      setTimeout(() => {
+        makeAIMove();
+      }, 300);
       
     } else {
 
       clearHighlights();
       showNotification("Mossa non valida!", "error");
-    }
-  } else {
-
+    }  } else {
+    // Non è il turno del giocatore o sta cercando di muovere pezzi dell'AI
     clearHighlights();
-    showNotification("Non è il tuo turno!", "error");
+    if (aiEnabled && !turno && pedina.color === "nero") {
+      showNotification("Non puoi muovere i pezzi dell'AI!", "error");
+    } else {
+      showNotification("Non è il tuo turno!", "error");
+    }
   }
 }
 
@@ -400,30 +406,39 @@ function isPathClear(start, end) {
 function updateGameStatus() {
   const statusElement = document.getElementById("currentPlayer");
   if (statusElement) {
-    if (turno) {
+    if (aiThinking) {
+      statusElement.textContent = "🤖 AI sta pensando...";
+      statusElement.className = "text-purple-400";
+    } else if (turno) {
       statusElement.textContent = "Turno del Bianco ♔";
       statusElement.className = "text-white";
     } else {
-      statusElement.textContent = "Turno del Nero ♛";
-      statusElement.className = "text-gray-300";
+      if (aiEnabled) {
+        statusElement.textContent = "Turno dell'AI ♛";
+        statusElement.className = "text-purple-400";
+      } else {
+        statusElement.textContent = "Turno del Nero ♛";
+        statusElement.className = "text-gray-300";
+      }
     }
   }
 }
 
 function resetGame() {
-
+  // Pulisce la scacchiera
   const scacchiera = document.getElementById("scacchiera");
   scacchiera.innerHTML = "";
 
-
+  // Resetta le variabili di gioco
   turno = true;
   pedine = [];
   cronologiaMosse = []; // Pulisce la cronologia
+  aiThinking = false; // Reset AI
 
-
+  // Riinizia il gioco
   init();
 
-
+  // Mostra messaggio di conferma
   showNotification("Nuova partita iniziata!", "success");
 }
 
@@ -632,6 +647,227 @@ document.addEventListener("keydown", function(event) {
   }
 });
 
+
+// ===== SISTEMA AI =====
+
+function toggleAI() {
+  aiEnabled = !aiEnabled;
+  const aiToggle = document.getElementById("aiToggle");
+  const aiControls = document.getElementById("aiControls");
+  const aiStatus = document.getElementById("aiStatus");
+  
+  if (aiEnabled) {
+    aiToggle.textContent = "🤖 Disabilita AI";
+    aiToggle.className = aiToggle.className.replace("from-purple-500 to-purple-700", "from-red-500 to-red-700");
+    aiControls.classList.remove("hidden");
+    aiStatus.textContent = `AI: Abilitata (${aiDifficulty})`;
+    showNotification("AI abilitata! L'AI gioca con i pezzi neri.", "success");
+  } else {
+    aiToggle.textContent = "🤖 Abilita AI";
+    aiToggle.className = aiToggle.className.replace("from-red-500 to-red-700", "from-purple-500 to-purple-700");
+    aiControls.classList.add("hidden");
+    aiStatus.textContent = "AI: Disabilitata";
+    showNotification("AI disabilitata.", "info");
+  }
+}
+
+function changeAIDifficulty() {
+  const select = document.getElementById("aiDifficultySelect");
+  aiDifficulty = select.value;
+  const aiStatus = document.getElementById("aiStatus");
+  aiStatus.textContent = `AI: Abilitata (${aiDifficulty})`;
+  showNotification(`Difficoltà AI cambiata a: ${aiDifficulty}`, "info");
+}
+
+function shouldAIMove() {
+  return aiEnabled && !turno && aiColor === "nero" && !aiThinking;
+}
+
+function makeAIMove() {
+  if (!shouldAIMove()) return;
+  
+  aiThinking = true;
+  updateGameStatus();
+  
+  // Simula tempo di riflessione
+  const thinkingTime = aiDifficulty === "easy" ? 500 : aiDifficulty === "medium" ? 1000 : 1500;
+  
+  setTimeout(() => {
+    const bestMove = findBestMove();
+    if (bestMove) {
+      executeAIMove(bestMove);
+    }
+    aiThinking = false;
+    updateGameStatus();
+  }, thinkingTime);
+}
+
+function findBestMove() {
+  const aiPieces = pedine.filter(p => p.color === aiColor);
+  const allMoves = [];
+  
+  // Genera tutte le mosse possibili per l'AI
+  for (const piece of aiPieces) {
+    const moves = getValidMovesForPiece(piece);
+    for (const move of moves) {
+      allMoves.push({
+        piece: piece,
+        from: { x: piece.posizione.x, y: piece.posizione.y },
+        to: move,
+        score: evaluateMove(piece, move)
+      });
+    }
+  }
+  
+  if (allMoves.length === 0) return null;
+  
+  // Ordina le mosse per punteggio
+  allMoves.sort((a, b) => b.score - a.score);
+  
+  // Selezione della mossa basata sulla difficoltà
+  let selectedMove;
+  switch (aiDifficulty) {
+    case "easy":
+      // 30% migliore mossa, 70% casuale
+      if (Math.random() < 0.3) {
+        selectedMove = allMoves[0];
+      } else {
+        selectedMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+      }
+      break;
+    case "medium":
+      // Sceglie tra le prime 3 mosse migliori
+      const topMoves = allMoves.slice(0, Math.min(3, allMoves.length));
+      selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)];
+      break;
+    case "hard":
+      // Sempre la mossa migliore
+      selectedMove = allMoves[0];
+      break;
+  }
+  
+  return selectedMove;
+}
+
+function getValidMovesForPiece(piece) {
+  const validMoves = [];
+  
+  for (let x = 1; x <= 8; x++) {
+    for (let y = 1; y <= 8; y++) {
+      const position = { x, y };
+      if (piece.checkMove(position)) {
+        validMoves.push(position);
+      }
+    }
+  }
+  
+  return validMoves;
+}
+
+function evaluateMove(piece, targetPosition) {
+  let score = 0;
+  
+  // Bonus per catturare pezzi
+  const targetPiece = getPieceAtPosition(targetPosition);
+  if (targetPiece && targetPiece.color !== piece.color) {
+    score += getPieceValue(targetPiece) * 10;
+  }
+  
+  // Bonus per controllo del centro
+  const centerBonus = getCenterControlBonus(targetPosition);
+  score += centerBonus;
+  
+  // Bonus per sviluppo dei pezzi
+  if (piece.constructor.name !== "PedoneNero") {
+    score += getDevelopmentBonus(piece, targetPosition);
+  }
+  
+  // Malus per esporre il re
+  score -= getKingSafetyPenalty(piece, targetPosition);
+  
+  return score;
+}
+
+function getPieceValue(piece) {
+  const values = {
+    "PedoneBianco": 1, "PedoneNero": 1,
+    "Torre": 5,
+    "Cavallo": 3,
+    "Alfiere": 3,
+    "Regina": 9,
+    "Re": 100
+  };
+  return values[piece.constructor.name] || 0;
+}
+
+function getCenterControlBonus(position) {
+  const centerSquares = [
+    {x: 4, y: 4}, {x: 4, y: 5}, {x: 5, y: 4}, {x: 5, y: 5}
+  ];
+  
+  for (const center of centerSquares) {
+    if (position.x === center.x && position.y === center.y) {
+      return 2;
+    }
+  }
+  
+  // Caselle vicine al centro
+  if (position.x >= 3 && position.x <= 6 && position.y >= 3 && position.y <= 6) {
+    return 1;
+  }
+  
+  return 0;
+}
+
+function getDevelopmentBonus(piece, targetPosition) {
+  // Incoraggia a muovere i pezzi dalla fila iniziale
+  if (piece.posizione.y === 8 && targetPosition.y < 8) {
+    return 1;
+  }
+  return 0;
+}
+
+function getKingSafetyPenalty(piece, targetPosition) {
+  // Implementazione base - evita di esporre il re
+  const king = pedine.find(p => p.constructor.name === "Re" && p.color === piece.color);
+  if (!king) return 0;
+  
+  const distance = Math.abs(targetPosition.x - king.posizione.x) + Math.abs(targetPosition.y - king.posizione.y);
+  if (distance > 3) {
+    return 1; // Piccolo malus per allontanarsi troppo dal re
+  }
+  
+  return 0;
+}
+
+function executeAIMove(move) {
+  // Salva lo stato prima della mossa AI
+  salvaStatoGioco();
+  
+  // Controlla se c'è un pezzo da catturare
+  const targetPiece = getPieceAtPosition(move.to);
+  if (targetPiece) {
+    const index = pedine.indexOf(targetPiece);
+    if (index !== -1) {
+      pedine.splice(index, 1);
+    }
+    showNotification(`AI ha catturato ${targetPiece.constructor.name}!`, "info");
+  } else {
+    showNotification("AI ha mosso!", "info");
+  }
+  
+  // Muovi il pezzo
+  const targetCell = document.getElementById(`cella${move.to.x}${move.to.y}`);
+  targetCell.innerHTML = "";
+  targetCell.appendChild(move.piece.oggetto);
+  move.piece.posizione.x = move.to.x;
+  move.piece.posizione.y = move.to.y;
+  
+  // Cambia turno
+  turno = !turno;
+  updateGameStatus();
+  clearHighlights();
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   updateGameStatus();
