@@ -315,111 +315,121 @@ function drop(event) {
     let pedina = getPedinaByReference(pedinaOggetto);
     console.log((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero"));
     
-    if((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero")){
-
-        let riga = target.riga;
+    if((turno==true&&pedina.color=="bianco")||(turno==false&&pedina.color=="nero")){        let riga = target.riga;
         let colonna = target.colonna;
         let oldPosition = {x: pedina.posizione.x, y: pedina.posizione.y};
         let nuovaPosizione = {x:riga, y:colonna};
 
-        if (pedina.checkMove(nuovaPosizione)&&checkOccupato(nuovaPosizione)){
-            // Mossa normale con effetto visivo
-            let cella = document.getElementById(target.id);
-            let cellaMobile = target.id.includes('Desktop') ? 
-                document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
-                document.getElementById(target.id.replace('Mobile', 'Desktop'));
+        // Verifica se la mossa è valida secondo le regole del pezzo
+        if (pedina.checkMove(nuovaPosizione)) {
+            const isTargetOccupied = !checkOccupato(nuovaPosizione);
             
-            // Animazione di movimento
-            pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            
-            cella.appendChild(pedina.oggetto);
-            if (cellaMobile && pedina.imgMobile) {
-                cellaMobile.appendChild(pedina.imgMobile);
-            }
-            
-            pedina.posizione.x=riga;
-            pedina.posizione.y=colonna;
-              // Traccia la mossa
-            const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + '-' + getChessNotation(riga, colonna);
-            addMoveToHistory(moveNotation);
-            moveCount++;
-            
-            turno=!turno;
-            updateCurrentPlayer();
-            updateMoveCount();
-            
-            // Reset transizione
-            setTimeout(() => {
-                pedina.oggetto.style.transition = '';
-            }, 300);
-            
-        }else if(pedina.checkMove(nuovaPosizione)&&!checkOccupato(nuovaPosizione)){
-
-            pieceAtPos=getPieceAtPosition(nuovaPosizione);
-
-            if(pieceAtPos.color!=pedina.color){
-                // Cattura pezzo con effetto visivo
-                let index = pedine.indexOf(pieceAtPos);
-                if (index !== -1) {
-                    // Aggiungi ai pezzi catturati
-                    const capturedPiece = {
-                        name: getPieceName(pieceAtPos),
-                        imgSrc: pieceAtPos.oggetto.src,
-                        color: pieceAtPos.color
-                    };
-                    
-                    if (pieceAtPos.color === 'bianco') {
-                        capturedPieces.white.push(capturedPiece);
-                    } else {
-                        capturedPieces.black.push(capturedPiece);
-                    }
-                    
-                    // Effetto di cattura
-                    const capturedImg = pieceAtPos.oggetto;
-                    capturedImg.style.transition = 'all 0.5s ease-out';
-                    capturedImg.style.transform = 'scale(0.8) rotate(15deg)';
-                    capturedImg.style.opacity = '0.5';
-                    
-                    setTimeout(() => {
-                        pedine.splice(index, 1);
-                    }, 250);
-                }
-
+            if (!isTargetOccupied) {
+                // Mossa normale (casella libera)
                 let cella = document.getElementById(target.id);
                 let cellaMobile = target.id.includes('Desktop') ? 
                     document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
                     document.getElementById(target.id.replace('Mobile', 'Desktop'));
                 
-                // Animazione di cattura
+                // Animazione di movimento
                 pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                 
-                setTimeout(() => {
-                    cella.innerHTML="";
-                    cella.appendChild(pedina.oggetto);
-                    if (cellaMobile && pedina.imgMobile) {
-                        cellaMobile.innerHTML="";
-                        cellaMobile.appendChild(pedina.imgMobile);
-                    }
-                }, 150);
+                cella.appendChild(pedina.oggetto);
+                if (cellaMobile && pedina.imgMobile) {
+                    cellaMobile.appendChild(pedina.imgMobile);
+                }
+                  pedina.posizione.x=riga;
+                pedina.posizione.y=colonna;
                 
-                console.log("Mangiato");
-                  // Traccia la mossa con cattura
-                const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + 'x' + getChessNotation(riga, colonna);
+                // Reset firstMove per i pedoni dopo la prima mossa
+                if ((pedina.constructor.name === 'PedoneBianco' || pedina.constructor.name === 'PedoneNero') && pedina.firstMove) {
+                    pedina.firstMove = false;
+                }
+                
+                  // Traccia la mossa
+                const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + '-' + getChessNotation(riga, colonna);
                 addMoveToHistory(moveNotation);
                 moveCount++;
                 
-                pedina.posizione.x=riga;
-                pedina.posizione.y=colonna;
                 turno=!turno;
-                
                 updateCurrentPlayer();
                 updateMoveCount();
-                updateCapturedPieces();
                 
                 // Reset transizione
                 setTimeout(() => {
                     pedina.oggetto.style.transition = '';
                 }, 300);
+                
+            } else {
+                // Casella occupata - verifica se è una cattura valida
+                const pieceAtPos = getPieceAtPosition(nuovaPosizione);                if (pieceAtPos && pieceAtPos.color != pedina.color) {
+                    // Cattura pezzo con effetto visivo
+                    let index = pedine.indexOf(pieceAtPos);
+                    if (index !== -1) {
+                        // Aggiungi ai pezzi catturati
+                        const capturedPiece = {
+                            name: getPieceName(pieceAtPos),
+                            imgSrc: pieceAtPos.oggetto.src,
+                            color: pieceAtPos.color
+                        };
+                        
+                        if (pieceAtPos.color === 'bianco') {
+                            capturedPieces.white.push(capturedPiece);
+                        } else {
+                            capturedPieces.black.push(capturedPiece);
+                        }
+                        
+                        // Effetto di cattura
+                        const capturedImg = pieceAtPos.oggetto;
+                        capturedImg.style.transition = 'all 0.5s ease-out';
+                        capturedImg.style.transform = 'scale(0.8) rotate(15deg)';
+                        capturedImg.style.opacity = '0.5';
+                        
+                        setTimeout(() => {
+                            pedine.splice(index, 1);
+                        }, 250);
+                    }
+
+                    let cella = document.getElementById(target.id);
+                    let cellaMobile = target.id.includes('Desktop') ? 
+                        document.getElementById(target.id.replace('Desktop', 'Mobile')) : 
+                        document.getElementById(target.id.replace('Mobile', 'Desktop'));
+                    
+                    // Animazione di cattura
+                    pedina.oggetto.style.transition = 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    
+                    setTimeout(() => {
+                        cella.innerHTML="";
+                        cella.appendChild(pedina.oggetto);
+                        if (cellaMobile && pedina.imgMobile) {
+                            cellaMobile.innerHTML="";
+                            cellaMobile.appendChild(pedina.imgMobile);
+                        }
+                    }, 150);
+                    
+                    console.log("Mangiato");
+                      // Traccia la mossa con cattura
+                    const moveNotation = getPieceName(pedina) + getChessNotation(oldPosition.x, oldPosition.y) + 'x' + getChessNotation(riga, colonna);
+                    addMoveToHistory(moveNotation);
+                    moveCount++;
+                      pedina.posizione.x=riga;
+                    pedina.posizione.y=colonna;
+                    
+                    // Reset firstMove per i pedoni dopo la prima mossa
+                    if ((pedina.constructor.name === 'PedoneBianco' || pedina.constructor.name === 'PedoneNero') && pedina.firstMove) {
+                        pedina.firstMove = false;
+                    }
+                    
+                    turno=!turno;
+                    
+                    updateCurrentPlayer();
+                    updateMoveCount();
+                    updateCapturedPieces();
+                      // Reset transizione
+                    setTimeout(() => {
+                        pedina.oggetto.style.transition = '';
+                    }, 300);
+                }
             }
         }
     }
