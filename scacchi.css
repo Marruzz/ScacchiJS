@@ -104,9 +104,12 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 5;
   position: relative;
-  display: flex;
-  align-items: center;
+  display: flex;  align-items: center;
   justify-content: center;
+  -webkit-user-drag: element;
+  -khtml-user-drag: element;
+  -moz-user-drag: element;
+  -o-user-drag: element;
 }
 
 .pedina:hover {
@@ -117,6 +120,8 @@
 .pedina:active {
   cursor: grabbing;
   transform: scale(1.08) rotate(-2deg);
+  /* Ensure dragging works even during active state */
+  user-select: none;
 }
 
 .pedina svg {
@@ -128,6 +133,14 @@
 
 .pedina:hover svg {
   filter: drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.6));
+}
+
+.pedina svg, .pedina svg * {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
 }
 
 /* Advanced SVG piece animations and effects */

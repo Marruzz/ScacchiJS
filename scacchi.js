@@ -2,6 +2,7 @@ const alphabet = "abcdefghijklmnopqrstuvwxyz";
 
 let turno = true;
 let pedine = [];
+let scacchiera = []; // Matrice per rappresentare la scacchiera
 
 // Cronologia delle mosse per l'annulla mossa
 let cronologiaMosse = [];
@@ -95,54 +96,55 @@ function creaCasella(riga, tipo) {
 
 
 function creaEPiazzaPedina(tipo, posizione, imgSrc, color) {
-  // Create SVG piece instead of image
-  let pedinaSVG = createSVGPiece(tipo, color);
-  pedinaSVG.classList.add("pedina");
-  pedinaSVG.draggable = true;
-  pedinaSVG.addEventListener("dragstart", drag);
-  pedinaSVG.id = tipo + posizione.x + posizione.y;
-  pedinaSVG.addEventListener("dragover", allowDrop);
-  pedinaSVG.addEventListener("drop", drop);
+  // Create image piece instead of SVG
+  let img = document.createElement("img");
+  img.src = imgSrc;
+  img.classList.add("pedina");
+  img.draggable = true;
+  img.addEventListener("dragstart", drag);
+  img.id = tipo + posizione.x + posizione.y;
+  img.addEventListener("dragover", allowDrop);
+  img.addEventListener("drop", drop);
   
   let cella = document.getElementById("cella" + posizione.x + posizione.y);
-  cella.appendChild(pedinaSVG);
+  cella.appendChild(img);
 
   let pedina = null;
   switch (tipo) {
     case "PedoneBianco":
-      pedina = new PedoneBianco(pedinaSVG, posizione);
+      pedina = new PedoneBianco(img, posizione);
       break;
     case "PedoneNero":
-      pedina = new PedoneNero(pedinaSVG, posizione);
+      pedina = new PedoneNero(img, posizione);
       break;
     case "TorreBianca":
-      pedina = new Torre(pedinaSVG, posizione, color);
+      pedina = new Torre(img, posizione, color);
       break;
     case "TorreNera":
-      pedina = new Torre(pedinaSVG, posizione, color);
+      pedina = new Torre(img, posizione, color);
       break;
     case "CavalloBianco":
-      pedina = new Cavallo(pedinaSVG, posizione, color);
+      pedina = new Cavallo(img, posizione, color);
       break;
     case "CavalloNero":
-      pedina = new Cavallo(pedinaSVG, posizione, color);
+      pedina = new Cavallo(img, posizione, color);
       break;
     case "AlfiereBianco":
-      pedina = new Alfiere(pedinaSVG, posizione, color);      break;
+      pedina = new Alfiere(img, posizione, color);      break;
     case "AlfiereNero":
-      pedina = new Alfiere(pedinaSVG, posizione, color);
+      pedina = new Alfiere(img, posizione, color);
       break;
     case "ReginaBianca":
-      pedina = new Regina(pedinaSVG, posizione, color);
+      pedina = new Regina(img, posizione, color);
       break;
     case "ReginaNera":
-      pedina = new Regina(pedinaSVG, posizione, color);
+      pedina = new Regina(img, posizione, color);
       break;
     case "ReBianco":
-      pedina = new Re(pedinaSVG, posizione, color);
+      pedina = new Re(img, posizione, color);
       break;
     case "ReNero":
-      pedina = new Re(pedinaSVG, posizione, color);
+      pedina = new Re(img, posizione, color);
       break;
   }
   pedine.push(pedina);

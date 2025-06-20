@@ -9,7 +9,6 @@ const ChessSVG = {
     });
     return element;
   },
-
   // Create premium piece container with proper styling
   createDetailedPiece: function(type, color) {
     const container = document.createElement("div");
@@ -20,6 +19,11 @@ const ChessSVG = {
       align-items: center;
       justify-content: center;
       filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     `;
     
     let svg;
@@ -52,8 +56,12 @@ const ChessSVG = {
       default:
         svg = this.createRoyalPawn(color);
     }
+      container.appendChild(svg);
     
-    container.appendChild(svg);
+    // Make sure SVG doesn't interfere with drag events
+    svg.style.pointerEvents = 'none';
+    svg.style.userSelect = 'none';
+    
     return container;
   },
 
@@ -449,3 +457,7 @@ function createSVGPiece(tipo, color) {
   
   return ChessSVG.createDetailedPiece(pieceType, color);
 }
+
+// Espone le funzioni globalmente per compatibilità con altri script
+window.ChessSVG = ChessSVG;
+window.createSVGPiece = createSVGPiece;
