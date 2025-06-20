@@ -39,14 +39,18 @@ function init(){
     
     // Usa la scacchiera desktop come riferimento principale
     scacchiera = scacchieraDesktop;
-    
-    console.log("Board generate");
+      console.log("Board generate");
     posizionaPedine();
     console.log("Pedine posizionate");    
+    
+    // Configura subito gli event listeners
+    setupEventListeners();
+    
     // Inizializza UI e timer
     setTimeout(() => {
         startGameTimer();
         updateCurrentPlayer();
+        // Richiama setupEventListeners nel caso alcuni elementi non fossero pronti prima
         setupEventListeners();
     }, 1000);
 }
@@ -696,29 +700,44 @@ function getPieceSymbol(piece) {
 }
 
 function setupEventListeners() {
+    console.log("Configurazione event listeners...");
+    
     // Event listeners per tutti i pulsanti
-    document.querySelectorAll('[data-action="new-game"]').forEach(btn => {
+    const newGameButtons = document.querySelectorAll('[data-action="new-game"]');
+    console.log("Pulsanti new-game trovati:", newGameButtons.length);
+    newGameButtons.forEach(btn => {
         btn.addEventListener('click', restartGame);
     });
     
-    document.querySelectorAll('[data-action="restart"]').forEach(btn => {
+    const restartButtons = document.querySelectorAll('[data-action="restart"]');
+    console.log("Pulsanti restart trovati:", restartButtons.length);
+    restartButtons.forEach(btn => {
         btn.addEventListener('click', restartGame);
     });
     
-    document.querySelectorAll('[data-action="undo"]').forEach(btn => {
+    const undoButtons = document.querySelectorAll('[data-action="undo"]');
+    console.log("Pulsanti undo trovati:", undoButtons.length);
+    undoButtons.forEach(btn => {
         btn.addEventListener('click', undoLastMove);
     });
     
-    document.querySelectorAll('[data-action="rules"]').forEach(btn => {
+    const rulesButtons = document.querySelectorAll('[data-action="rules"]');
+    console.log("Pulsanti rules trovati:", rulesButtons.length);
+    rulesButtons.forEach(btn => {
         btn.addEventListener('click', showRules);
     });
     
-    document.querySelectorAll('[data-action="surrender"]').forEach(btn => {
+    const surrenderButtons = document.querySelectorAll('[data-action="surrender"]');
+    console.log("Pulsanti surrender trovati:", surrenderButtons.length);
+    surrenderButtons.forEach(btn => {
         btn.addEventListener('click', surrenderGame);
     });
+    
+    console.log("Event listeners configurati!");
 }
 
 function undoLastMove() {
+    console.log("Funzione undoLastMove chiamata!");
     if (moveHistory.length === 0) {
         alert('Nessuna mossa da annullare!');
         return;
@@ -727,7 +746,9 @@ function undoLastMove() {
 }
 
 function surrenderGame() {
+    console.log("Funzione surrenderGame chiamata!");
     if (confirm('Sei sicuro di voler abbandonare la partita?')) {
+        console.log("Utente ha confermato l'abbandono");
         isGameActive = false;
         stopGameTimer();
         
@@ -793,7 +814,9 @@ function startNewGame() {
 }
 
 function restartGame() {
+    console.log("Funzione restartGame chiamata!");
     if (confirm('Sei sicuro di voler ricominciare la partita?')) {
+        console.log("Utente ha confermato il restart");
         startNewGame();
     }
 }
